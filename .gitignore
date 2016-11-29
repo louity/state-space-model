@@ -1,0 +1,9 @@
+.DS_store
+**/*/.DS_store
+**/*.swp
+**/*.swo
+**/*.pyc
+rapport/*.log
+rapport/*.aux
+rapport/*.pdf
+

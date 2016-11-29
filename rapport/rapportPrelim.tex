@@ -1,0 +1,57 @@
+\documentclass[11pt, oneside]{amsart}
+\usepackage{geometry}
+\geometry{letterpaper}
+\usepackage[francais]{babel}
+\usepackage[utf8]{inputenc}
+\usepackage{graphicx}
+\usepackage{float}
+\usepackage{etex,mathtools}
+\usepackage{amssymb}
+\usepackage{enumitem}
+\usepackage{amsmath}
+\usepackage{caption}
+\usepackage{listings}
+\usepackage{array}
+
+\graphicspath{{images/}}
+
+\title[]{Preliminary report, PGM}
+\author[1]{Louis Thiry}
+\author[2]{Thomas Kerdreux}
+\author[3]{Nicolas Jouvin}
+\begin{document}
+
+\maketitle
+
+\section{Understanding of the paper}
+
+This paper presents an algorithm to learn non linear stationnary dynamics of a system.
+
+The system can be viewed as a graphical model :
+% include SVG of graphical model
+
+The dynamics of the system can be written in general as :
+\begin{align*}
+  % equation non linéraire
+\end{align*}
+
+The first key assumption made to simplify the problem is :
+\begin{align*}
+  % dev taylor
+\end{align*}
+% justification, commentaire
+
+The second key assumption made to simplify the problem is :
+\begin{align*}
+  % f et g affines + somme RBF
+\end{align*}
+% justification, commentaire
+
+The algorithm is tested first on generated data.
+% commentaire sur la forme bien particulière de ces fonction : douille
+
+\section{Planned implementations}
+
+1. Kalman filter
+
+\end{document}
