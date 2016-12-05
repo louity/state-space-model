@@ -28,31 +28,78 @@ class LinearStateSpaceModel:
         self.R = check_matrix(R, output_dim, 'matrix R size must equal to output_dim')
 
     def kalman_filtering(self, output_sequence):
+        """
+            etant donne une sequence [y_1, ..., y_t], calcule de façon dynamique
+            les moyennes et covariances de probabilités gaussiennes
+            p(x_k|y_1, ... , y_k) et p(x_k|y_1, ... , y_k-1) pour k=1...t
+            stocke les resultats dans self.filtered_state_means et self.filtered_state_covariance
+        """
         t = len(output_sequence)
         self.output_sequence = output_sequence
 
-        x_0 = np.zeros(self.state_dim)
-        P_0 = self.Sigma_0
-
-        self.state_means = [ x_0 ]
-        self.state_covariance = [ P_0 ]
-
+        # simplify notations
         A = self.A
-        Q =self.Q
+        Q = self.Q
         C = self.C
         R = self.R
         AT = np.transpose(A)
         CT = np.transpose(C)
 
-        for i in range(1, t):
+        self.filtered_state_means = []
+        self.filtered_state_covariance = []
+
+        for i in range(0, t):
             y = self.output_sequence[i]
 
-            x_1_0 = A.dot(x_0)
-            P_1_0 = A * P_0 * AT
+            if i == 0:
+                #initialization
+                x_1_0 = np.zeros(self.state_dim)
+                P_1_0 = self.Sigma_0
+            else:
+                x_1_0 = A.dot(self.filtered_state_means[i-1][1])
+                P_1_0 = A * self.filtered_state_covariance[i-1][1] * AT + Q
+
+            # kalma gain matrix
             K = P_1_0 * CT * inv(C * P_1_0 * CT + R)
+            x_1_1 = x_1_0 + K.dot(y - C.dot(x_1_0))
+            P_1_1 = P_1_0 - K  * C * P_1_0
 
+            self.filtered_state_means.append([x_1_0, x_1_1])
+            self.filtered_state_covariance.append([P_1_0, P_1_1])
 
+    def kalman_smoothing(self, output_sequence):
+        """
+            etant donne une sequence [y_1, ..., y_T], calcule de façon dynamique
+            les moyennes et covariances de probabilités gaussiennes
+            p(x_t|y_1, ... , y_T) pour t=1...T
+            stocke les resultats dans self.smoothed_state_means et self.smoothed_state_covariance
+        """
+        self.kalman_filtering(output_sequence)
+        T = len(output_sequence)
 
+        self.smoothed_state_means = []
+        self.smoothed_state_covariance = []
 
+        AT = np.transpose(self.A)
 
+        for i in range(T, 0, -1):
+            if i == T:
+                x_t_T = self.filtered_state_means[i-1][1]
+                P_t_T = self.filtered_state_covariance[i-1][1]
+            else:
+                P_t_t = self.filtered_state_covariance[i-1][1]
+                P_t_plus_1_t = self.filtered_state_covariance[i][0]
+                P_t_plus_1_T = self.smoothed_state_covariance[0]
+                x_t_t = self.filtered_state_means[i-1][1]
+                x_t_plus_1_t = self.filtered_state_means[i][0]
+                x_t_plus_1_T = self.smoothed_state_means[0]
+
+                L =  P_t_t * AT * inv(P_t_plus_1_t)
+                LT = np.transpose(L)
+
+                x_t_T = x_t_t + L.dot(x_t_plus_1_T - x_t_plus_1_t)
+                P_t_T = P_t_t + L * (P_t_plus_1_T - P_t_plus_1_t) * LT
+
+            self.smoothed_state_means.insert(0, x_t_T)
+            self.smoothed_state_covariance.insert(0, P_t_T)
 
