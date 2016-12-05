@@ -1,6 +1,7 @@
 # coding: utf8
 import numpy as np
 from numpy.linalg import inv
+from numpy.random import multivariate_normal as mv_norm
 
 def check_matrix(M, dim, err_message='wrong matrix dim'):
     if M is None:
@@ -26,16 +27,22 @@ class LinearStateSpaceModel:
         self.Q = check_matrix(Q, state_dim, 'matrix Q size must equal to state_dim')
         self.C = check_matrix(C, output_dim, 'matrix C size must equal to output_dim')
         self.R = check_matrix(R, output_dim, 'matrix R size must equal to output_dim')
+        self.output_sequence = None
+        self.state_sequence = None
 
-    def kalman_filtering(self, output_sequence):
+    def kalman_filtering(self, output_sequence=None):
         """
             etant donne une sequence [y_1, ..., y_t], calcule de façon dynamique
             les moyennes et covariances de probabilités gaussiennes
             p(x_k|y_1, ... , y_k) et p(x_k|y_1, ... , y_k-1) pour k=1...t
             stocke les resultats dans self.filtered_state_means et self.filtered_state_covariance
         """
-        t = len(output_sequence)
-        self.output_sequence = output_sequence
+        if output_sequence is None and self.output_sequence is None:
+            raise ValueError('Can not do filtering if output_sequence is None')
+        elif output_sequence is not None:
+            self.output_sequence = output_sequence
+
+        t = len(self.output_sequence)
 
         # simplify notations
         A = self.A
@@ -67,7 +74,7 @@ class LinearStateSpaceModel:
             self.filtered_state_means.append([x_1_0, x_1_1])
             self.filtered_state_covariance.append([P_1_0, P_1_1])
 
-    def kalman_smoothing(self, output_sequence):
+    def kalman_smoothing(self, output_sequence=None):
         """
             etant donne une sequence [y_1, ..., y_T], calcule de façon dynamique
             les moyennes et covariances de probabilités gaussiennes
@@ -75,7 +82,8 @@ class LinearStateSpaceModel:
             stocke les resultats dans self.smoothed_state_means et self.smoothed_state_covariance
         """
         self.kalman_filtering(output_sequence)
-        T = len(output_sequence)
+
+        T = len(self.output_sequence)
 
         self.smoothed_state_means = []
         self.smoothed_state_covariance = []
@@ -103,3 +111,20 @@ class LinearStateSpaceModel:
             self.smoothed_state_means.insert(0, x_t_T)
             self.smoothed_state_covariance.insert(0, P_t_T)
 
+    def draw_sample(self, T=1):
+        states = []
+        outputs = []
+        x_1 = mv_norm(np.zeros(self.state_dim), self.Sigma_0)
+        y_1 = mv_norm(self.C.dot(x_1), self.R)
+
+        states.append(x_1)
+        outputs.append(y_1)
+
+        for i in range(1,T):
+            x_i = mv_norm(self.A.dot(states[i-1]), self.Q)
+            y_i = mv_norm(self.C.dot(x_i), self.R)
+            states.append(x_i)
+            outputs.append(y_i)
+
+        self.output_sequence = outputs
+        self.state_sequence = states
