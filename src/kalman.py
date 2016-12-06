@@ -2,6 +2,9 @@
 import numpy as np
 from numpy.linalg import inv
 from numpy.random import multivariate_normal as mv_norm
+import random
+
+DEFAULT_N_RBF = 10
 
 def check_matrix(M, dim, err_message='wrong matrix dim'):
     if M is None:
@@ -11,7 +14,7 @@ def check_matrix(M, dim, err_message='wrong matrix dim'):
     else:
         return M
 
-class LinearStateSpaceModel:
+class StateSpaceModel:
     """
     classe decrivant un modele suivant les equations :
         x_t+1 = A x_t + w_t, w_t zero mean with cov mat Q
@@ -19,7 +22,8 @@ class LinearStateSpaceModel:
     permet de faire du filtering et du smoothing
     """
 
-    def __init__(self, state_dim=1, output_dim=1, Sigma_0=None, A=None, Q=None, C=None, R=None):
+    def __init__(self, isLinear=True, state_dim=1, output_dim=1, Sigma_0=None, A=None, Q=None, C=None, R=None, rbf_parameters=None, rbf_coeffs=None):
+        self.isLinear = isLinear
         self.state_dim = state_dim
         self.output_dim = output_dim
         self.Sigma_0 = check_matrix(Sigma_0, state_dim, 'matrix Sigma_0 sie must be equal to state_dim')
@@ -29,6 +33,25 @@ class LinearStateSpaceModel:
         self.R = check_matrix(R, output_dim, 'matrix R size must equal to output_dim')
         self.output_sequence = None
         self.state_sequence = None
+
+        if not self.isLinear:
+            if rbf_parameters is None:
+                self.draw_sample(10 * DEFAULT_N_RBF)
+                self.kalman_smoothing()
+                self.rbf_parameters = {
+                    'n_rbf': DEFAULT_N_RBF,
+                    'centers': random.sample(self.smoothed_state_means, DEFAULT_N_RBF),
+                    'width': random.sample(self.smoothed_state_covariance, DEFAULT_N_RBF)
+                }
+            else:
+                self.rbf_parameters = rbf_parameters
+
+            if rbf_coeffs is None:
+                self.rbf_coeffs = []
+                for i in range(0, self.rbf_parameters['n_rbf']):
+                    self.rbf_coeffs.append(np.ones(self.state_dim))
+            else:
+                self.rbf_coeffs = rbf_coeffs
 
     def kalman_filtering(self, output_sequence=None):
         """
