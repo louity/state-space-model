@@ -6,10 +6,13 @@ import random
 
 DEFAULT_N_RBF = 10
 
-def check_matrix(M, dim, err_message='wrong matrix dim'):
+def check_matrix(M, shape, err_message='wrong matrix shape'):
     if M is None:
-        return np.identity(dim)
-    elif M.size != dim:
+        M = np.zeros(shape)
+        for i in range(0, min(shape)):
+            M[i, i] = 1.0
+        return M
+    elif M.shape != shape:
         raise ValueError(err_message)
     else:
         return M
@@ -17,22 +20,26 @@ def check_matrix(M, dim, err_message='wrong matrix dim'):
 class StateSpaceModel:
     """
     classe decrivant un modele suivant les equations :
-        x_t+1 = A x_t + w_t, w_t zero mean with cov mat Q
-        y_t = C x_t + v_t, v_t zero mean with cov mat R
+        x_t+1 = A x_t + B u_t + w_t, w_t zero mean with cov mat Q
+        y_t = C x_t + D u_t + v_t, v_t zero mean with cov mat R
     permet de faire du filtering et du smoothing
     """
 
-    def __init__(self, isLinear=True, state_dim=1, output_dim=1, Sigma_0=None, A=None, Q=None, C=None, R=None, rbf_parameters=None, rbf_coeffs=None):
+    def __init__(self, isLinear=True, state_dim=1, input_dim=1, output_dim=1, Sigma_0=None, A=None, B=None, Q=None, C=None, D=None, R=None, rbf_parameters=None, rbf_coeffs=None):
         self.isLinear = isLinear
         self.state_dim = state_dim
+        self.input_dim = input_dim
         self.output_dim = output_dim
-        self.Sigma_0 = check_matrix(Sigma_0, state_dim, 'matrix Sigma_0 sie must be equal to state_dim')
-        self.A = check_matrix(A, state_dim, 'matrix A size must equal to state_dim')
-        self.Q = check_matrix(Q, state_dim, 'matrix Q size must equal to state_dim')
-        self.C = check_matrix(C, output_dim, 'matrix C size must equal to output_dim')
-        self.R = check_matrix(R, output_dim, 'matrix R size must equal to output_dim')
+        self.Sigma_0 = check_matrix(Sigma_0, (state_dim, state_dim), 'matrix Sigma_0 shape must be equal to state_dim')
+        self.A = check_matrix(A, (state_dim, state_dim), 'matrix A shape must equal to state_dim x state_dim')
+        self.B = check_matrix(B, (state_dim, input_dim), 'matrix B shape must equal to state_dim x input_dim')
+        self.Q = check_matrix(Q, (state_dim, state_dim), 'matrix Q shape must equal to state_dim x state_dim')
+        self.C = check_matrix(C, (output_dim, state_dim), 'matrix C shape must equal to output_dim x state_dim')
+        self.D = check_matrix(D, (output_dim, input_dim), 'matrix D shape must equal to output_dim x input_dim')
+        self.R = check_matrix(R, (output_dim, output_dim), 'matrix R shape must equal to output_dim')
         self.output_sequence = None
         self.state_sequence = None
+        self.input_sequence = None
 
         if not self.isLinear:
             if rbf_parameters is None:
@@ -53,7 +60,7 @@ class StateSpaceModel:
             else:
                 self.rbf_coeffs = rbf_coeffs
 
-    def kalman_filtering(self, output_sequence=None):
+    def kalman_filtering(self, input_sequence=None, output_sequence=None):
         """
             etant donne une sequence [y_1, ..., y_t], calcule de façon dynamique
             les moyennes et covariances de probabilités gaussiennes
@@ -67,10 +74,18 @@ class StateSpaceModel:
 
         t = len(self.output_sequence)
 
+        if input_sequence is None and self.input_sequence is None:
+            print 'WARNING: no input sequence'
+            self.input_sequence = []
+            for i in range(0,t):
+                self.input_sequence.append(np.zeros(self.input_dim))
+
         # simplify notations
         A = self.A
+        B = self.B
         Q = self.Q
         C = self.C
+        D = self.D
         R = self.R
         AT = np.transpose(A)
         CT = np.transpose(C)
@@ -80,19 +95,20 @@ class StateSpaceModel:
 
         for i in range(0, t):
             y = self.output_sequence[i]
+            u = self.input_sequence[i]
 
             if i == 0:
                 #initialization
                 x_1_0 = np.zeros(self.state_dim)
                 P_1_0 = self.Sigma_0
             else:
-                x_1_0 = A.dot(self.filtered_state_means[i-1][1])
-                P_1_0 = A * self.filtered_state_covariance[i-1][1] * AT + Q
+                x_1_0 = A.dot(self.filtered_state_means[i-1][1]) + B.dot(self.input_sequence[i-1])
+                P_1_0 = A.dot(self.filtered_state_covariance[i-1][1]).dot(AT) + Q
 
             # kalma gain matrix
-            K = P_1_0 * CT * inv(C * P_1_0 * CT + R)
-            x_1_1 = x_1_0 + K.dot(y - C.dot(x_1_0))
-            P_1_1 = P_1_0 - K  * C * P_1_0
+            K = P_1_0.dot(CT).dot(inv(C.dot(P_1_0).dot(CT) + R))
+            x_1_1 = x_1_0 + K.dot(y - (C.dot(x_1_0) + D.dot(u)))
+            P_1_1 = P_1_0 - K.dot(C).dot(P_1_0)
 
             self.filtered_state_means.append([x_1_0, x_1_1])
             self.filtered_state_covariance.append([P_1_0, P_1_1])
@@ -125,27 +141,36 @@ class StateSpaceModel:
                 x_t_plus_1_t = self.filtered_state_means[i][0]
                 x_t_plus_1_T = self.smoothed_state_means[0]
 
-                L =  P_t_t * AT * inv(P_t_plus_1_t)
+                L = P_t_t.dot(AT).dot(inv(P_t_plus_1_t))
                 LT = np.transpose(L)
 
                 x_t_T = x_t_t + L.dot(x_t_plus_1_T - x_t_plus_1_t)
-                P_t_T = P_t_t + L * (P_t_plus_1_T - P_t_plus_1_t) * LT
+                P_t_T = P_t_t + L.dot(P_t_plus_1_T - P_t_plus_1_t).dot(LT)
 
             self.smoothed_state_means.insert(0, x_t_T)
             self.smoothed_state_covariance.insert(0, P_t_T)
 
-    def draw_sample(self, T=1):
+    def draw_sample(self, T=1, input_sequence=None):
+        if input_sequence is None and (self.input_sequence is None or len(self.input_sequence) < T):
+            print 'No input sequence given, setting inputs to zero'
+            self.input_sequence = []
+            for i in range(0,T):
+                self.input_sequence.append(np.zeros(self.input_dim))
+
         states = []
         outputs = []
+        inputs = self.input_sequence
+
+
         x_1 = mv_norm(np.zeros(self.state_dim), self.Sigma_0)
-        y_1 = mv_norm(self.C.dot(x_1), self.R)
+        y_1 = mv_norm(self.C.dot(x_1) + self.D.dot(inputs[0]), self.R)
 
         states.append(x_1)
         outputs.append(y_1)
 
         for i in range(1,T):
-            x_i = mv_norm(self.A.dot(states[i-1]), self.Q)
-            y_i = mv_norm(self.C.dot(x_i), self.R)
+            x_i = mv_norm(self.A.dot(states[i-1]) + self.B.dot(inputs[i-1]), self.Q)
+            y_i = mv_norm(self.C.dot(x_i) + self.D.dot(inputs[i]), self.R)
             states.append(x_i)
             outputs.append(y_i)
 
