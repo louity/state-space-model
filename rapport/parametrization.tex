@@ -1,0 +1,42 @@
+\section{Parametrization of the functions}
+
+As we said below, the functions $f$ and $g$ must be parametrized.
+The authors propose the following parametrizations for $f$ and $g$ :
+
+\begin{align*}
+  f(x,u) &= \sum_{i=1}^I h_i \rho_i(x) + Ax + Bu + b\\
+  \rho_i(x) &= \frac{1}{(2\pi)^{d/2}|S_i|^{1/2}} exp\left(-\frac{1}{2}(x-c_i)^T S_{i}^{-1}(x-c_i)\right)\\
+  g(x,u) &= \sum_{j=1}^J h_j \rho'_j(x) + Cx + Du + d\\
+  \rho_{g,i}(x) &= \frac{1}{(2\pi)^{d/2}|S'_j|^{1/2}} exp\left(-\frac{1}{2}(x-c'_j)^T {S'_{j}}^{-1}(x-c'_j)\right)\\
+\end{align*}
+
+The functions $\rho_i$ and $\rho'_j$ are called radial basis functions (RBF).
+The centers $c_i$ and $c'_j$ of the RBF are supposed to be known, as well as the width $S_i$ and $S'_j$.
+We will see further that can be leanrt, but for the moments, we suppose that they are knows.
+
+
+So $f$ (as well as $g$) is the sum of an affine function ($x \rightarrow Ax + b$) and $I$ radial basis functions ($x \rightarrow h_i\rho_i(x)$, $i=1 \cdots I$).
+And the parameters $\theta_f$ and $\theta_g$ are of our functions are :
+
+\begin{align*}
+  \theta_f &= \left( h_1, ..., h_I, A, B, b\right) \\
+  \theta_g &= \left( k_1, ..., k_J, C, D, d\right) \\
+\end{align*}
+
+In one dimension for example, $f : \left[0,1\right] \rightarrow \left[0,1\right]$ can have the following form:
+
+\begin{figure}[H]
+\captionsetup{labelformat=empty}
+\minipage{0.32\textwidth}
+  \includegraphics[width=\linewidth]{function_RBF_3.png}
+  \caption{I = 1}
+\endminipage\hfill
+\minipage{0.32\textwidth}
+  \includegraphics[width=\linewidth]{function_RBF_1.png}
+  \caption{I = 2}
+\endminipage\hfill
+\minipage{0.32\textwidth}
+  \includegraphics[width=\linewidth]{function_RBF_2.png}
+  \caption{I = 4}
+\endminipage\hfill
+\end{figure}
