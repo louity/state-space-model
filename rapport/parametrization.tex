@@ -6,7 +6,7 @@ The authors propose the following parametrizations for $f$ and $g$ :
 \begin{align*}
   f(x,u) &= \sum_{i=1}^I h_i \rho_i(x) + Ax + Bu + b\\
   \rho_i(x) &= \frac{1}{(2\pi)^{d/2}|S_i|^{1/2}} exp\left(-\frac{1}{2}(x-c_i)^T S_{i}^{-1}(x-c_i)\right)\\
-  g(x,u) &= \sum_{j=1}^J h_j \rho'_j(x) + Cx + Du + d\\
+  g(x,u) &= \sum_{j=1}^J k_j \rho'_j(x) + Cx + Du + d\\
   \rho_{g,i}(x) &= \frac{1}{(2\pi)^{d/2}|S'_j|^{1/2}} exp\left(-\frac{1}{2}(x-c'_j)^T {S'_{j}}^{-1}(x-c'_j)\right)\\
 \end{align*}
 
@@ -16,11 +16,11 @@ We will see further that can be leanrt, but for the moments, we suppose that the
 
 
 So $f$ (as well as $g$) is the sum of an affine function ($x \rightarrow Ax + b$) and $I$ radial basis functions ($x \rightarrow h_i\rho_i(x)$, $i=1 \cdots I$).
-And the parameters $\theta_f$ and $\theta_g$ are of our functions are :
+The parameters $\theta_f$ and $\theta_g$ are of our functions are :
 
 \begin{align*}
-  \theta_f &= \left( h_1, ..., h_I, A, B, b\right) \\
-  \theta_g &= \left( k_1, ..., k_J, C, D, d\right) \\
+  \theta_f &= \left( h_1, \ldots , h_I, A, B, b\right) \\
+  \theta_g &= \left( k_1, \ldots , k_J, C, D, d\right) \\
 \end{align*}
 
 In one dimension for example, $f : \left[0,1\right] \rightarrow \left[0,1\right]$ can have the following form:
@@ -40,3 +40,5 @@ In one dimension for example, $f : \left[0,1\right] \rightarrow \left[0,1\right]
   \caption{I = 4}
 \endminipage\hfill
 \end{figure}
+
+Yet that the functions $f$ and $g$ are parametrized, we can begin with the study of the proposed EM algorithm.

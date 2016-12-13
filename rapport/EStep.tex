@@ -1,0 +1,40 @@
+\section{E-Step}
+
+In the E-step, knowing the parameters $\theta = (\theta_f, \theta_g)$, the output sequence $(y_t)_{t=1 \cdots T}$ and the input seequnce $(u_t)_{t=1 \cdots T}$,j we want to infer the sequence $(x_t)_{t=1 \ldots T}$ and $(x_t, x_{t+1})_{t=1 \ldots T-1}$.
+In other words we want to compute the conditional probabilities :
+\begin{align*}
+  &p_{\theta}\left(x_t|y_1, u_1, \ldots, y_T, u_T \right ), t=1 \ldots T\\
+  &p_{\theta}\left(x_t, x_{t+1}|y_1, u_1, \ldots, y_T, u_T \right ), t=1 \ldots T\\
+\end{align*}
+
+The computations of these conditional probabilities are not tractable when $f$ and $g$ are not linear.
+To solve this problem, we will linearize our dynamical equations as each time step $t$:
+\begin{align*}
+	x_{t+1} &= f(\hat{x}_t, u_t) + A_{\hat{x}_t} (x - x_t) + w_t\\
+  A_{\hat{x}_t} &= \frac{\partial f}{\partial x}(\hat{x}_t)\\
+	y_t &= g(\hat{x}_t, u_t) + C_{\hat{x}_t} (x - x_t) + v_t\\
+  C_{\hat{x}_t} &= \frac{\partial g}{\partial x}(\hat{x}_t)\\
+\end{align*}
+where $\hat{x}_t$ is a well chosen point and adapt the inferences algorithms (Kalman filter and Rauch-Tung-Stribel smoother).
+
+This approach involving linearization at each time step is called Extented Kalman Smoothing (EKS).
+
+\subsection{Kalman filter}
+
+ \newline
+
+If the case where $f$ and $g$ are affine, the Kalman filter algorithm computes dynamically the conditional probabilities :
+\begin{align*}
+  &p_{\theta}\left(x_t|y_1, u_1, \ldots, y_t, u_t \right ), t=1 \ldots T\\
+  &p_{\theta}\left(x_t, x_{t+1}|y_1, u_1, \ldots, y_t, u_t \right ), t=1 \ldots T\\
+\end{align*}
+
+\subsection{Rauch-Tung-Stribel smoother}
+
+ \newline
+
+If the case where $f$ and $g$ are affine, the RTS smoother algorithm uses the conditionnal probabilities computed with Kalman filter to compute the conditional probabilities :
+\begin{align*}
+  &p_{\theta}\left(x_t|y_1, u_1, \ldots, y_T, u_T \right ), t=1 \ldots T\\
+  &p_{\theta}\left(x_t, x_{t+1}|y_1, u_1, \ldots, y_T, u_T \right ), t=1 \ldots T\\
+\end{align*}
