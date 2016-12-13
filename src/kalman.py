@@ -1,8 +1,10 @@
 # coding: utf8
 import numpy as np
-from numpy.linalg import inv
+from numpy import power, exp
+from numpy.linalg import inv, det
 from numpy.random import multivariate_normal as mv_norm
 import random
+import math
 
 DEFAULT_N_RBF = 10
 
@@ -16,6 +18,20 @@ def check_matrix(M, shape, err_message='wrong matrix shape'):
         raise ValueError(err_message)
     else:
         return M
+
+def rbf(rbf_value, rbf_center, rbf_width_inv, x):
+    dim = rbf_center.size
+    K = 1.0 * det(rbf_width_inv) / power(2 * np.pi, dim / 2)
+    v = (x - rbf_center)
+    rbf_term = exp(-0.5 * v.transpose().dot(rbf_width_inv).dot(v))
+
+    return K * rbf_value * rbf_term
+
+def derivate_rbf(rbf_value, rbf_center, rbf_width_inv, x):
+    v = (x - rbf_center)
+
+    return rbf(rbf_value, rbf_center, rbf_width_inv, x).dot(v.transpose()).dot(rbf_width_inv)
+
 
 class StateSpaceModel:
     """
@@ -60,7 +76,7 @@ class StateSpaceModel:
             else:
                 self.rbf_coeffs = rbf_coeffs
 
-    def kalman_filtering(self, input_sequence=None, output_sequence=None):
+    def kalman_filtering(self, is_extended=False, input_sequence=None, output_sequence=None):
         """
             etant donne une sequence [y_1, ..., y_t], calcule de façon dynamique
             les moyennes et covariances de probabilités gaussiennes
@@ -113,7 +129,7 @@ class StateSpaceModel:
             self.filtered_state_means.append([x_1_0, x_1_1])
             self.filtered_state_covariance.append([P_1_0, P_1_1])
 
-    def kalman_smoothing(self, output_sequence=None):
+    def kalman_smoothing(self, is_extended=False, output_sequence=None):
         """
             etant donne une sequence [y_1, ..., y_T], calcule de façon dynamique
             les moyennes et covariances de probabilités gaussiennes
