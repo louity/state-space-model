@@ -1,22 +1,27 @@
 \section{The model}
 
-This article deals with non-linear stochastic dynamical system in discrete-time.
-The authors model with such systems with five sequences :
-$x=(x_t)_{t=1\cdots T}$, $y=(y_t)_{t=1\cdots T}$, $u=(u_t)_{t=1 \cdots T}$, $w=(w_t)_{t=1 \cdots T}$ and $v=(v_t)_{t=1 \cdots T}$.
-
+This article deals with a non-linear stochastic dynamical system in discrete-time.
+The authors model with this systems with five sequences :
 \begin{itemize}
-  \item $u_t$ (in $\mathbb{R}^p$) are called the input variable and are observed.
-  \item $x_t$ (in $\mathbb{R}^q$) are called the state and are unknown.
-  \item $y_t$ (in $\mathbb{R}^n$) are called the output and are observed.
-  \item $w_t$ and $v_t$ (in $\mathbb{R}^q \times \mathbb{R}^n$) are Gaussian noises and are unknown.
+  \item $(x_t)_{t=1 \ldots T}$ (in $\mathbb{R}^p$) are called the \textbf{states} and are \textbf{unknown}.
+  \item $(u_t)_{t=1 \ldots T}$ (in $\mathbb{R}^q$) are called the \textbf{inputs} and are \textbf{observed}.
+  \item $(y_t)_{t=1 \ldots T}$ (in $\mathbb{R}^n$) are called the \textbf{outputs} and are \textbf{observed}.
+  \item $(v_t)_{t=1 \ldots T-1}$ and $(w_t)_{t=1 \ldots T-1)}$ (in $\mathbb{R}^p \times \mathbb{R}^n$) are zero-mean \textbf{Gaussian iid noises} of covariance matrices $Q \in \mathbb{R \in \mathbb{R}^{p \times p}}^{n \times n} $ and $R$ and are unknown.
 \end{itemize}
+and with two \textbf{non-linear differentiable} functions :
+\begin{align*}
+  f \colon \mathbb{R}^p \times \mathbb{R}^q &\to \mathbb{R}^p\\
+  (x,u) &\mapsto f(x, u)\\
+  g \colon \mathbb{R}^p \times \mathbb{R}^q &\to \mathbb{R}^n\\
+  (x,u) &\mapsto g(x, u)\\
+\end{align*}
 
 The stochastic dynamics equations are:
 \begin{eqnarray}
-x_{t+1}&=& f(x_t,u_t)+w_t\\
-y_t &=& g(x_t,u_t)+v_t
+  x_{t+1}&=& f(x_t,u_t)+v_t\\
+  y_t &=& g(x_t,u_t)+w_t
 \end{eqnarray}
-and can be represented with the graphical model:
+This system can be represented with the graphical model:
 \begin{figure}[H]
 	\includegraphics[width=14cm]{screenshot_graphical_model.PNG}
 	\captionof{figure}{Graphical model of our system.}

@@ -3,13 +3,13 @@
 The goal of the algorithm presented in this article is to learn the dynamics of the system, which means learn the functions $f$ and $g$ that are supposed to be unknown.
 In other words, the functions $f$ and $g$ are parametrized by $\theta_f$ and $\theta_g$ and we want to learn theses parameters with the maximum likelihood principle.
 
-The complication is that both the parameters $(\theta_f, \theta_g)$ and the state sequence $(x_t)_{t=1 \cdots T}$ are unknown.
-In such case where both states and parameters are unknown, a typicall approach is to use and EM algorithm:
+The complication is that both the parameters $(\theta_f, \theta_g)$ and the state sequence $(x_t)_{t=1 \cdots T}$ is unknown.
+In such case where both states and parameters are unknown, a typical approach is to use an iterative Expectations Maximization (EM) algorithm:
 \begin{itemize}
-\item we begin with an inital values for the parameters $\theta_f$ and $\theta_g$.
-\item We itertate the E-step and M-step :
+  \item we begin with an inital values for the parameters $\theta_f^{(0)}$ and $\theta_g^{(0)}$.
+\item For $k=1 \ldots K$, we itertate E-step and M-step:
   \begin{itemize}
-  \item In the \textbf{E-step}, the states $(x_t)_{t=1 \cdots T}$ are inferred or estimated.
-  \item In the \textbf{M-step}, the parameters $\theta_f$ and $\theta_g$ are re-estimated.
+    \item In the \textbf{E-step}, the states $(x_t)_{t=1 \cdots T}$ are inferred or estimated knowing the parameters $\theta_f^{(k-1)}$ and $\theta_g^{(k-1)}$ computed in the previous M-Step.
+    \item In the \textbf{M-step}, the estimated the new parameters $\theta_f^{(k)}$ and $\theta_g^{(k)}$ knowing the states $(x_t)_{t=1 \cdots T}$ just computed in the E-Step.
   \end{itemize}
 \end{itemize}
