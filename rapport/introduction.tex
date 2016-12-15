@@ -1,12 +1,15 @@
 \section*{introduction}
 
-This article presents an algorithm to learn non linear stochastic dynamical system.
-In fact, this article only gives the general ideas of an instance of EM algorithm to learn such systems in a particular case.
-But none of the computations are fully presented, leaving the work for the reader.
+This article presents an algorithm to learn non-linear stochastic dynamical system with incomplete observation.
+It can be applied only for a specific parametrization of non-linear functions.
+This algorithm is an instance of EM algorithm, estimmating the non-observed variables in the E-Step and learning the parameters of the non-linear functions in the M-Step.
+
+It is regrettable that none of the computations are fully presented, neither for the E-Step nor for the M-Step, leaving the work for the reader.
 Indeed, this article is the sixth chapter of the book "Kalman Filtering and Neural Network" edited by Simon Haykin and the authors mention the chapter 1 for some of the computations they do not provide.
 We luckily found on the internet a numerical version of that, which is otherwise available for sale for more than 100 euros.
-But the graphical model they use is even not same as in chapter 1.
+But the graphical model they use is even not same as the on presented in chapter 1 of that book.
 
-So before summerizing this article, we wan't to insist on the fact that we were really disapointed by the quality of that article that spends a lot of time on simple things (explaining EM algorithm principle, deriving linear Kalman filter equations) but that to nor provide the key computations (Extended Kalman Smoothing, log likelihood maximization).
+So before summerizing this article, we wan't to insist on the fact that we were really disapointed by the quality of that article that spends a lot of time on simple things (explaining EM algorithm principle, deriving linear Kalman filter equations) but that provide none of the key computations, neither for the E-Step (Extended Kalman Smoothing) nor for the M-Step (log likelihood maximization).
+
 It costed us a lot of time and reflexion to understand that we had to do it, and then to do it.
-
+Fortunatelly, the lecture notes were of great help in that work.
