@@ -1,8 +1,10 @@
 # coding: utf8
 import numpy as np
-from numpy.linalg import inv
+from numpy import power, exp
+from numpy.linalg import inv, det
 from numpy.random import multivariate_normal as mv_norm
 import random
+import math
 
 DEFAULT_N_RBF = 10
 
@@ -17,26 +19,55 @@ def check_matrix(M, shape, err_message='wrong matrix shape'):
     else:
         return M
 
+def rbf(rbf_value, rbf_center, rbf_width_inv, x):
+    dim = rbf_center.size
+    K = 1.0 * det(rbf_width_inv) / power(2 * np.pi, dim / 2)
+    v = (x - rbf_center)
+    rbf_term = exp(-0.5 * v.transpose().dot(rbf_width_inv).dot(v))
+
+    return K * rbf_value * rbf_term
+
+def rbf_derivative(rbf_value, rbf_center, rbf_width_inv, x):
+    v = np.matrix(x - rbf_center)
+    rbf_vector = np.matrix(rbf(rbf_value, rbf_center, rbf_width_inv, x))
+
+    return rbf_vector.T.dot(v).dot(rbf_width_inv)
+
+
 class StateSpaceModel:
     """
     classe decrivant un modele suivant les equations :
-        x_t+1 = A x_t + B u_t + w_t, w_t zero mean with cov mat Q
+        x_t+1 = sum_i(rho_i(x) h_i) + A x_t + B u_t + w_t, w_t zero mean with cov mat Q,rho_i RBF function
         y_t = C x_t + D u_t + v_t, v_t zero mean with cov mat R
     permet de faire du filtering et du smoothing
     """
 
-    def __init__(self, isLinear=True, state_dim=1, input_dim=1, output_dim=1, Sigma_0=None, A=None, B=None, Q=None, C=None, D=None, R=None, rbf_parameters=None, rbf_coeffs=None):
+    def __init__(self, isLinear=True, state_dim=None, input_dim=None, output_dim=None, Sigma_0=None, A=None, B=None, Q=None, C=None, D=None, R=None, rbf_parameters=None, rbf_coeffs=None):
         self.isLinear = isLinear
-        self.state_dim = state_dim
-        self.input_dim = input_dim
-        self.output_dim = output_dim
-        self.Sigma_0 = check_matrix(Sigma_0, (state_dim, state_dim), 'matrix Sigma_0 shape must be equal to state_dim')
-        self.A = check_matrix(A, (state_dim, state_dim), 'matrix A shape must equal to state_dim x state_dim')
-        self.B = check_matrix(B, (state_dim, input_dim), 'matrix B shape must equal to state_dim x input_dim')
-        self.Q = check_matrix(Q, (state_dim, state_dim), 'matrix Q shape must equal to state_dim x state_dim')
-        self.C = check_matrix(C, (output_dim, state_dim), 'matrix C shape must equal to output_dim x state_dim')
-        self.D = check_matrix(D, (output_dim, input_dim), 'matrix D shape must equal to output_dim x input_dim')
-        self.R = check_matrix(R, (output_dim, output_dim), 'matrix R shape must equal to output_dim')
+
+        if state_dim is None:
+            print 'No state space imension given, default set to 1'
+            self.state_dim = 1
+        else:
+            self.state_dim = state_dim
+        if input_dim is None:
+            print 'No input space dimension given, default set to 1'
+            self.input_dim = 1
+        else:
+            self.input_dim = input_dim
+        if output_dim is None:
+            print 'No output space dimension given, default set to 1'
+            self.output_dim = 1
+        else:
+            self.output_dim = output_dim
+
+        self.Sigma_0 = check_matrix(Sigma_0, (self.state_dim, self.state_dim), 'matrix Sigma_0 shape must be equal to self.state_dim')
+        self.A = check_matrix(A, (self.state_dim, self.state_dim), 'matrix A shape must equal to self.state_dim x self.state_dim')
+        self.B = check_matrix(B, (self.state_dim, self.input_dim), 'matrix B shape must equal to self.state_dim x self.input_dim')
+        self.Q = check_matrix(Q, (self.state_dim, self.state_dim), 'matrix Q shape must equal to self.state_dim x self.state_dim')
+        self.C = check_matrix(C, (self.output_dim, self.state_dim), 'matrix C shape must equal to self.output_dim x self.state_dim')
+        self.D = check_matrix(D, (self.output_dim, self.input_dim), 'matrix D shape must equal to self.output_dim x self.input_dim')
+        self.R = check_matrix(R, (self.output_dim, self.output_dim), 'matrix R shape must equal to self.output_dim')
         self.output_sequence = None
         self.state_sequence = None
         self.input_sequence = None
@@ -60,7 +91,43 @@ class StateSpaceModel:
             else:
                 self.rbf_coeffs = rbf_coeffs
 
-    def kalman_filtering(self, input_sequence=None, output_sequence=None):
+    def compute_f(self, x, u=None):
+        if x.size != self.state_dim:
+            raise ValueError('x vector must have state dimension')
+        elif u is None:
+            u = np.zeros(self.input_dim)
+        elif u.size != self.input_dim:
+            raise ValueError('u vector must have state dimension')
+
+        f = self.A.dot(x) + self.B.dot(u)
+
+        for i in range(0, self.rbf_parameters['n_rbf']):
+            center = self.rbf_parameters['centers'][i]
+            width = self.rbf_parameters['width'][i]
+            value = self.rbf_coeffs[i]
+            f += rbf(value, center, inv(width), x)
+
+        return f
+
+    def compute_f_derivative(self, x, u=None):
+        if x.size != self.state_dim:
+            raise ValueError('x vector must have state dimension')
+        elif u is None:
+            u = np.zeros(self.input_dim)
+        elif u.size != self.input_dim:
+            raise ValueError('u vector must have state dimension')
+
+        df = self.A
+
+        for i in range(0, self.rbf_parameters['n_rbf']):
+            center = self.rbf_parameters['centers'][i]
+            width = self.rbf_parameters['width'][i]
+            value = self.rbf_coeffs[i]
+            df += rbf_derivative(value, center, inv(width), x)
+
+        return df
+
+    def kalman_filtering(self, is_extended=False, input_sequence=None, output_sequence=None):
         """
             etant donne une sequence [y_1, ..., y_t], calcule de façon dynamique
             les moyennes et covariances de probabilités gaussiennes
@@ -113,7 +180,7 @@ class StateSpaceModel:
             self.filtered_state_means.append([x_1_0, x_1_1])
             self.filtered_state_covariance.append([P_1_0, P_1_1])
 
-    def kalman_smoothing(self, output_sequence=None):
+    def kalman_smoothing(self, is_extended=False, output_sequence=None):
         """
             etant donne une sequence [y_1, ..., y_T], calcule de façon dynamique
             les moyennes et covariances de probabilités gaussiennes

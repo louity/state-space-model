@@ -1,0 +1,54 @@
+\section{M-step}
+
+The article miss at providing a full understanding on how Radial basis functions are used to compute exactly the M-step. In order to implement safely, it is of interest to write down all the analytic computations. So let's start from the beginning:\\
+
+At the M-step we have the knowledge of $p_{\theta_{old}}(x_k|\overline{u},\overline{y})$ and $p_{\theta_{old}}(x_k,x_{k+1}|\overline{u},\overline{y})$ for all possible value of $k$. From that we want $f$,$g$, $R$ and $Q$.\\ 
+
+\begin{itemize}
+\item The use of the EKS was in fact done in a way such that $(x_k,x_{k+1})$ are Gaussian. So the knowledge of $p_{\theta_{old}}(x_k|\overline{u},\overline{y})$ and $p_{\theta_{old}}(x_k,x_{k+1}|\overline{u},\overline{y})$ boils down to covariance matrix and mean vector. Indeed these are the output of Kallman.
+\item $f$, $g$ have evolved from the land of non-linear arbitrariness to the heaven of radial basis functions. \textbf{Let's denote by $\theta_f$ and $\theta_g$, the respective parameters that stand for the representation of $f$ and $g$.}
+\end{itemize}
+
+At the M-step, we estimate the parameters $(\theta)=(\theta_f,\theta_g,R,Q)$ by maximizing L, the expected complete likelihood. To write it we use the graph factorization of $p(x,y,u)$. For any sequence $x,y,u$ we have:
+\begin{eqnarray}
+p_{\theta}(x,y,u)&=& p_{\theta}(x_1)\prod_{t=1}^{T-1}{p_{\theta}(x_{t+1}|x_t,u_t)}\prod_{t=1}^{T-1}{p_{\theta}(u_t)}\prod_{t=1}^{T}{p_{\theta}(y_t|x_t,u_t)}
+%p_{\theta}(x,y,u)&=& p_{\theta}(x_1)\prod_{t=1}^{T-1}{\frac{p_{\theta}(x_{t+1},x_t|u_t)}{p_{\theta}(x_t|u_t)}}\prod_{t=1}^{T-1}{p_{\theta}(u_t)}\prod_{t=1}^{T}{\frac{p_{\theta}(y_t,x_t|u_t)}{p_{\theta}(x_t|u_t)}}
+\end{eqnarray}
+But here $y$ and $u$ are observed so that (denoting $\overline{y}$,$\overline{u}$) :
+\begin{eqnarray}
+%
+p_{\theta}(x,\overline{y},\overline{u})&=& p_{\theta}(x_1)\prod_{t=1}^{T-1}{p_{\theta}(x_{t+1}|x_t,\overline{u}_t)}\prod_{t=1}^{T}{p_{\theta}(\overline{y}_t|x_t,\overline{u}_t)}
+\end{eqnarray}
+
+Then the expected complete likelihood (over $p_{\theta_{old}}(x_t)$ and $p_{\theta_{old}}(x_t,x_{t+1})$) is written as:
+\begin{eqnarray}
+L=\mathbb{E}_x(\log(p_{\theta}(x_1)))+\sum_{t=1}^{T-1}{\mathbb{E}_x(\log(p_{\theta}(x_{t+1}|x_t,\overline{u}_t)))}+\sum_{t=1}^{T}{\mathbb{E}_x(\log(p_{\theta}(\overline{y}_t|x_t,\overline{u}_t)))}\nonumber
+\end{eqnarray}
+\textbf{We want to maximize L and it is separable on $(\theta_f,Q)$, $(\theta_g,R)$}.\\
+
+Section 6.2.3 explains how to maximize each $\mathbb{E}_x(\log(p_{\theta}(\overline{y}_t,x_t)))$ over $(\theta_g,R)$ (situation (3) with j=1) and $\mathbb{E}_x(\log(p_{\theta}(x_{t+1},x_t)))$ over $(\theta_f,Q)$ (situation (1) with j=1).\\
+Introducing the author notations (it is the same for $g$, just replace $f$ by $g$): 
+\begin{align*}
+\theta_f & \overset{\Delta}{=} [h_1^f, \ldots, h_I^f, A^f, B^f, b^f] \\
+\Phi_f & \overset{\Delta}{=} [\rho_1^f(x),\ldots, \rho_I^f(x), x^T, u^T, 1]^T \quad\text{(always fixed)} 
+\end{align*}
+we are able to obtain close form for the optimal parameters in the M-step :
+
+\begin{eqnarray}
+(\hat{\theta}_f,\hat{Q})&=&\underset{\theta_f,Q}{\text{argmin }}{\left(\sum_{t=1}^{T-1}{
+<(x_{t+1}-\theta_f\Phi_f)^T Q^{-1}(x_{t+1}-\theta_f\Phi_f) >_{x_{t+1},x_t}+\log(|Q|)
+}\right)}\nonumber\\
+(\hat{\theta}_g,\hat{R})&=&\underset{\theta_g,R}{\text{argmin }}{\left(\sum_{t=1}^{T}{
+<(y_{t}-\theta_g\Phi_g)^T R^{-1}(y_{t}-\theta_g\Phi_g) >_{y_t,x_t}+\log(|R|)
+}\right)}\nonumber\\
+%\hat{\pi}&=& \underset{\pi}{\text{argmax }}{\mathbb{E}_x(\log(p_{\theta}(x_1)))}\nonumber
+\end{eqnarray}
+
+Which leads to:
+\begin{eqnarray}
+\hat{\theta}_f&=&(\sum_{t=1}^{T-1}{<x_{t+1}\Phi_f^T >_{(x_t,x_{t+1})_{old}}})(\sum_{t=1}^{T-1}{<\Phi_f\Phi_f^T >_{(x_t,x_{t+1})_{old}}})^{-1}\\
+\hat{\theta}_g&=&(\sum_{t=1}^{T}{<y_{t}\Phi_g^T >_{(x_t)_{old}}})(\sum_{t=1}^{T}{<\Phi_g\Phi_g^T >_{(x_t)_{old}}})^{-1}
+\end{eqnarray}
+
+Note that implicitly,for $f$ and $g$, $\Phi=\Phi(x_t)$.
+
