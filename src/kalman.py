@@ -51,7 +51,7 @@ class StateSpaceModel:
     permet de faire du filtering et du smoothing
     """
 
-    def __init__(self, is_f_linear=True, state_dim=None, input_dim=None, output_dim=None, Sigma_0=None, A=None, B=None, b=None, Q=None, C=None, D=None, d=None, R=None, rbf_parameters=None, rbf_coeffs=None):
+    def __init__(self, is_f_linear=True, state_dim=None, input_dim=None, output_dim=None, Sigma_0=None, A=None, B=None, b=None, Q=None, C=None, D=None, d=None, R=None, f_rbf_parameters=None, f_rbf_coeffs=None):
         self.is_f_linear = is_f_linear
 
         if state_dim is None:
@@ -85,23 +85,23 @@ class StateSpaceModel:
         self.input_sequence = None
 
         if not self.is_f_linear:
-            if rbf_parameters is None:
+            if f_rbf_parameters is None:
                 print 'No rbf parameters provided, initialize them with linear Kalman Smoothing'
-                self.initialize_rbf_parameters()
+                self.initialize_f_rbf_parameters()
             else:
-                self.rbf_parameters = rbf_parameters
+                self.f_rbf_parameters = f_rbf_parameters
 
-            if rbf_coeffs is None:
-                self.rbf_coeffs = []
-                for i in range(0, self.rbf_parameters['n_rbf']):
-                    self.rbf_coeffs.append(np.ones(self.state_dim))
+            if f_rbf_coeffs is None:
+                self.f_rbf_coeffs = []
+                for i in range(0, self.f_rbf_parameters['n_rbf']):
+                    self.f_rbf_coeffs.append(np.ones(self.state_dim))
             else:
-                self.rbf_coeffs = rbf_coeffs
+                self.f_rbf_coeffs = f_rbf_coeffs
 
-    def initialize_rbf_parameters(self):
+    def initialize_f_rbf_parameters(self):
         self.draw_sample(10 * DEFAULT_N_RBF)
         self.kalman_smoothing()
-        self.rbf_parameters = {
+        self.f_rbf_parameters = {
             'n_rbf': DEFAULT_N_RBF,
             'centers': random.sample(self.smoothed_state_means, DEFAULT_N_RBF),#TODO : replace random selection by k-means
             'width': random.sample(self.smoothed_state_covariance, DEFAULT_N_RBF)
@@ -118,10 +118,10 @@ class StateSpaceModel:
         f = self.A.dot(x) + self.B.dot(u)
 
         if not self.is_f_linear:
-            for i in range(0, self.rbf_parameters['n_rbf']):
-                center = self.rbf_parameters['centers'][i]
-                width = self.rbf_parameters['width'][i]
-                value = self.rbf_coeffs[i]
+            for i in range(0, self.f_rbf_parameters['n_rbf']):
+                center = self.f_rbf_parameters['centers'][i]
+                width = self.f_rbf_parameters['width'][i]
+                value = self.f_rbf_coeffs[i]
                 f += rbf(value, center, inv(width), x)
 
         return f
@@ -137,10 +137,10 @@ class StateSpaceModel:
         df = self.A
 
         if not self.is_f_linear:
-            for i in range(0, self.rbf_parameters['n_rbf']):
-                center = self.rbf_parameters['centers'][i]
-                width = self.rbf_parameters['width'][i]
-                value = self.rbf_coeffs[i]
+            for i in range(0, self.f_rbf_parameters['n_rbf']):
+                center = self.f_rbf_parameters['centers'][i]
+                width = self.f_rbf_parameters['width'][i]
+                value = self.f_rbf_coeffs[i]
                 df += rbf_derivative(value, center, inv(width), x)
 
         return df
