@@ -2,7 +2,7 @@
 from kalman import StateSpaceModel
 import unittest
 
-STATE_SPACE_MODEL_MINIMAL_ATTRIBUTES = ['isLinear', 'state_dim', 'input_dim', 'output_dim', 'Sigma_0', 'A', 'B', 'Q', 'C', 'D', 'R']
+STATE_SPACE_MODEL_MINIMAL_ATTRIBUTES = ['is_f_linear', 'state_dim', 'input_dim', 'output_dim', 'Sigma_0', 'A', 'B', 'Q', 'C', 'D', 'R']
 
 class TestStateSpaceModel(unittest.TestCase):
     """
@@ -14,8 +14,8 @@ class TestStateSpaceModel(unittest.TestCase):
         """
 
         # tester le cas lineaire et non lineaire
-        for i, isLinear in enumerate([True, False]):
-            ssm = StateSpaceModel(isLinear=isLinear)
+        for i, is_f_linear in enumerate([True, False]):
+            ssm = StateSpaceModel(is_f_linear=is_f_linear)
 
             # verifier que les attributs minimaux sont bien définis
             for i, attr in enumerate(STATE_SPACE_MODEL_MINIMAL_ATTRIBUTES):
@@ -26,12 +26,12 @@ class TestStateSpaceModel(unittest.TestCase):
             teste la méthode sample dans plusieurs cas
         """
         # tester le cas lineaire et non lineaire
-        for i, isLinear in enumerate([True, False]):
+        for i, is_f_linear in enumerate([True, False]):
             # tester différentes dimensions pour les espaces
             for j, (state_dim, output_dim) in enumerate(zip([1, 4, 3], [1, 3, 4])):
                 # tester différentes tailles
                 for k, n_sample in enumerate([1, 10]):
-                    ssm = StateSpaceModel(isLinear=isLinear, state_dim=state_dim, output_dim=output_dim)
+                    ssm = StateSpaceModel(is_f_linear=is_f_linear, state_dim=state_dim, output_dim=output_dim)
                     ssm.draw_sample(T=n_sample)
                     self.assertEqual(len(getattr(ssm, 'state_sequence')), n_sample)
 
@@ -47,14 +47,14 @@ class TestStateSpaceModel(unittest.TestCase):
             teste les méthodes kalman_filtering et kalman_smoothing dans plusieurs cas
         """
         # tester le cas lineaire seulement (non lineaire pas implémenté)
-        for i, isLinear in enumerate([True, False]):
+        for i, is_f_linear in enumerate([True, False]):
             # tester différentes dimensions pour les espaces
             for j, (state_dim, output_dim) in enumerate(zip([1, 4, 3], [1, 3, 4])):
                 # tester différentes tailles
                 for k, n_sample in enumerate([1, 10]):
-                    ssm = StateSpaceModel(isLinear=isLinear, state_dim=state_dim, output_dim=output_dim)
+                    ssm = StateSpaceModel(is_f_linear=is_f_linear, state_dim=state_dim, output_dim=output_dim)
                     ssm.draw_sample(T=n_sample)
-                    is_extended = not isLinear
+                    is_extended = not is_f_linear
                     ssm.kalman_smoothing(is_extended=is_extended)# la methode kalman_smoothing appelle la méthode_kalman filtering
                     self.assertEqual(len(getattr(ssm, 'filtered_state_means')), n_sample)
                     self.assertEqual(len(getattr(ssm, 'filtered_state_covariance')), n_sample)

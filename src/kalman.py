@@ -51,8 +51,8 @@ class StateSpaceModel:
     permet de faire du filtering et du smoothing
     """
 
-    def __init__(self, isLinear=True, state_dim=None, input_dim=None, output_dim=None, Sigma_0=None, A=None, B=None, b=None, Q=None, C=None, D=None, d=None, R=None, rbf_parameters=None, rbf_coeffs=None):
-        self.isLinear = isLinear
+    def __init__(self, is_f_linear=True, state_dim=None, input_dim=None, output_dim=None, Sigma_0=None, A=None, B=None, b=None, Q=None, C=None, D=None, d=None, R=None, rbf_parameters=None, rbf_coeffs=None):
+        self.is_f_linear = is_f_linear
 
         if state_dim is None:
             print 'No state space imension given, default set to 1'
@@ -84,7 +84,7 @@ class StateSpaceModel:
         self.state_sequence = None
         self.input_sequence = None
 
-        if not self.isLinear:
+        if not self.is_f_linear:
             if rbf_parameters is None:
                 print 'No rbf parameters provided, initialize them with linear Kalman Smoothing'
                 self.initialize_rbf_parameters()
@@ -117,7 +117,7 @@ class StateSpaceModel:
 
         f = self.A.dot(x) + self.B.dot(u)
 
-        if not self.isLinear:
+        if not self.is_f_linear:
             for i in range(0, self.rbf_parameters['n_rbf']):
                 center = self.rbf_parameters['centers'][i]
                 width = self.rbf_parameters['width'][i]
@@ -136,7 +136,7 @@ class StateSpaceModel:
 
         df = self.A
 
-        if not self.isLinear:
+        if not self.is_f_linear:
             for i in range(0, self.rbf_parameters['n_rbf']):
                 center = self.rbf_parameters['centers'][i]
                 width = self.rbf_parameters['width'][i]
@@ -153,7 +153,7 @@ class StateSpaceModel:
             stocke les resultats dans self.filtered_state_means et self.filtered_state_covariance
         """
 
-        if is_extended and self.isLinear:
+        if is_extended and self.is_f_linear:
             raise ValueError('Can not do extended Kalman filter with linear state space model')
 
         if output_sequence is None and self.output_sequence is None:
