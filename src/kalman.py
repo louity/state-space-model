@@ -74,13 +74,8 @@ class StateSpaceModel:
 
         if not self.isLinear:
             if rbf_parameters is None:
-                self.draw_sample(10 * DEFAULT_N_RBF)
-                self.kalman_smoothing()
-                self.rbf_parameters = {
-                    'n_rbf': DEFAULT_N_RBF,
-                    'centers': random.sample(self.smoothed_state_means, DEFAULT_N_RBF),
-                    'width': random.sample(self.smoothed_state_covariance, DEFAULT_N_RBF)
-                }
+                print 'No rbf parameters provided, initialize them with linear Kalman Smoothing'
+                self.initialize_rbf_parameters()
             else:
                 self.rbf_parameters = rbf_parameters
 
@@ -90,6 +85,15 @@ class StateSpaceModel:
                     self.rbf_coeffs.append(np.ones(self.state_dim))
             else:
                 self.rbf_coeffs = rbf_coeffs
+
+    def initialize_rbf_parameters(self):
+        self.draw_sample(10 * DEFAULT_N_RBF)
+        self.kalman_smoothing()
+        self.rbf_parameters = {
+            'n_rbf': DEFAULT_N_RBF,
+            'centers': random.sample(self.smoothed_state_means, DEFAULT_N_RBF),#TODO : replace random selection by k-means
+            'width': random.sample(self.smoothed_state_covariance, DEFAULT_N_RBF)
+        }
 
     def compute_f(self, x, u=None):
         if x.size != self.state_dim:
