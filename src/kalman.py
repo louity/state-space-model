@@ -117,11 +117,12 @@ class StateSpaceModel:
 
         f = self.A.dot(x) + self.B.dot(u)
 
-        for i in range(0, self.rbf_parameters['n_rbf']):
-            center = self.rbf_parameters['centers'][i]
-            width = self.rbf_parameters['width'][i]
-            value = self.rbf_coeffs[i]
-            f += rbf(value, center, inv(width), x)
+        if not self.isLinear:
+            for i in range(0, self.rbf_parameters['n_rbf']):
+                center = self.rbf_parameters['centers'][i]
+                width = self.rbf_parameters['width'][i]
+                value = self.rbf_coeffs[i]
+                f += rbf(value, center, inv(width), x)
 
         return f
 
@@ -135,11 +136,12 @@ class StateSpaceModel:
 
         df = self.A
 
-        for i in range(0, self.rbf_parameters['n_rbf']):
-            center = self.rbf_parameters['centers'][i]
-            width = self.rbf_parameters['width'][i]
-            value = self.rbf_coeffs[i]
-            df += rbf_derivative(value, center, inv(width), x)
+        if not self.isLinear:
+            for i in range(0, self.rbf_parameters['n_rbf']):
+                center = self.rbf_parameters['centers'][i]
+                width = self.rbf_parameters['width'][i]
+                value = self.rbf_coeffs[i]
+                df += rbf_derivative(value, center, inv(width), x)
 
         return df
 
@@ -150,6 +152,10 @@ class StateSpaceModel:
             p(x_k|y_1, ... , y_k) et p(x_k|y_1, ... , y_k-1) pour k=1...t
             stocke les resultats dans self.filtered_state_means et self.filtered_state_covariance
         """
+
+        if is_extended and self.isLinear:
+            raise ValueError('Can not do extended Kalman filter with linear state space model')
+
         if output_sequence is None and self.output_sequence is None:
             raise ValueError('Can not do filtering if output_sequence is None')
         elif output_sequence is not None:
@@ -164,6 +170,7 @@ class StateSpaceModel:
                 self.input_sequence.append(np.zeros(self.input_dim))
 
         # simplify notations
+        R = self.R
         A = self.A
         B = self.B
         b = self.b
@@ -171,7 +178,6 @@ class StateSpaceModel:
         C = self.C
         D = self.D
         d = self.d
-        R = self.R
         AT = np.transpose(A)
         CT = np.transpose(C)
 
@@ -181,6 +187,17 @@ class StateSpaceModel:
         for i in range(0, t):
             y = self.output_sequence[i]
             u = self.input_sequence[i]
+            # pour le extended kalman filter, on change les valeure de A, b, C, d a chaque étape
+            if is_extended:
+                # point de linearisation
+                if i==0:
+                    x_tilde = np.zeros(self.state_dim)
+                else:
+                    x_tilde = self.filtered_state_means[i-1][1]
+
+                A = self.A + self.compute_f_derivative(x_tilde, self.input_sequence[i-1])
+                AT = np.transpose(A)
+                b = self.b + self.compute_f(x_tilde, self.input_sequence[i-1])
 
             if i == 0:
                 #initialization
@@ -205,7 +222,7 @@ class StateSpaceModel:
             p(x_t|y_1, ... , y_T) pour t=1...T
             stocke les resultats dans self.smoothed_state_means et self.smoothed_state_covariance
         """
-        self.kalman_filtering(output_sequence)
+        self.kalman_filtering(is_extended=is_extended, output_sequence=output_sequence)
 
         T = len(self.output_sequence)
 
@@ -215,6 +232,14 @@ class StateSpaceModel:
         AT = np.transpose(self.A)
 
         for i in range(T, 0, -1):
+            if is_extended:
+                x_dot = self.filtered_state_means[i-1][1] # point de linéarisation
+                if i==1:
+                    A = self.A + self.compute_f_derivative(x_dot) # no input
+                else:
+                    A = self.A + self.compute_f_derivative(x_dot, self.input_sequence[i-1])
+                AT = np.transpose(A)
+
             if i == T:
                 x_t_T = self.filtered_state_means[i-1][1]
                 P_t_T = self.filtered_state_covariance[i-1][1]
