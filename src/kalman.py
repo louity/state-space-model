@@ -47,12 +47,13 @@ class StateSpaceModel:
     """
     classe decrivant un modele suivant les equations :
         x_t+1 = sum_i(rho_i(x) h_i) + A x_t + B u_t + b + w_t, w_t zero mean with cov mat Q,rho_i RBF function
-        y_t = C x_t + D u_t + d + v_t, v_t zero mean with cov mat R
+        y_t = sum_j(rho_j(x) k_j) + C x_t + D u_t + d + v_t, v_t zero mean with cov mat R
     permet de faire du filtering et du smoothing
     """
 
-    def __init__(self, is_f_linear=True, state_dim=None, input_dim=None, output_dim=None, Sigma_0=None, A=None, B=None, b=None, Q=None, C=None, D=None, d=None, R=None, f_rbf_parameters=None, f_rbf_coeffs=None):
+    def __init__(self, is_f_linear=True, is_g_linear=True, state_dim=None, input_dim=None, output_dim=None, Sigma_0=None, A=None, B=None, b=None, Q=None, C=None, D=None, d=None, R=None, f_rbf_parameters=None, f_rbf_coeffs=None, g_rbf_parameters=None, g_rbf_coeffs=None):
         self.is_f_linear = is_f_linear
+        self.is_g_linear = is_g_linear
 
         if state_dim is None:
             print 'No state space imension given, default set to 1'
@@ -86,7 +87,7 @@ class StateSpaceModel:
 
         if not self.is_f_linear:
             if f_rbf_parameters is None:
-                print 'No rbf parameters provided, initialize them with linear Kalman Smoothing'
+                print 'No rbf parameters provided for f, initialize them with linear Kalman Smoothing'
                 self.initialize_f_rbf_parameters()
             else:
                 self.f_rbf_parameters = f_rbf_parameters
@@ -98,6 +99,20 @@ class StateSpaceModel:
             else:
                 self.f_rbf_coeffs = f_rbf_coeffs
 
+        if not self.is_g_linear:
+            if g_rbf_parameters is None:
+                print 'No rbf parameters provided for g, initialize them '
+                self.initialize_g_rbf_parameters()
+            else:
+                self.g_rbf_parameters = g_rbf_parameters
+
+            if g_rbf_coeffs is None:
+                self.g_rbf_coeffs = []
+                for i in range(0, self.f_rbf_parameters['n_rbf']):
+                    self.g_rbf_coeffs.append(np.ones(self.state_dim))
+            else:
+                self.g_rbf_coeffs = g_rbf_coeffs
+
     def initialize_f_rbf_parameters(self):
         self.draw_sample(10 * DEFAULT_N_RBF)
         self.kalman_smoothing()
@@ -105,6 +120,15 @@ class StateSpaceModel:
             'n_rbf': DEFAULT_N_RBF,
             'centers': random.sample(self.smoothed_state_means, DEFAULT_N_RBF),#TODO : replace random selection by k-means
             'width': random.sample(self.smoothed_state_covariance, DEFAULT_N_RBF)
+        }
+
+    def initialize_g_rbf_parameters(self):
+        raise Exception('>>>>>>>>>> NOT IMPLEMENTED YET <<<<<<<<<<')
+        # TODO
+        self.g_rbf_parameters = {
+            'n_rbf': DEFAULT_N_RBF,
+            'centers': [],
+            'width': []
         }
 
     def compute_f(self, x, u=None):
@@ -153,7 +177,7 @@ class StateSpaceModel:
             stocke les resultats dans self.filtered_state_means et self.filtered_state_covariance
         """
 
-        if is_extended and self.is_f_linear:
+        if is_extended and (self.is_f_linear and self.is_g_linear):
             raise ValueError('Can not do extended Kalman filter with linear state space model')
 
         if output_sequence is None and self.output_sequence is None:
