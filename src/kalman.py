@@ -8,6 +8,15 @@ import math
 
 DEFAULT_N_RBF = 10
 
+def check_vector(v, size, err_message='wrong vector size'):
+    if v is None:
+        v = np.zeros(size)
+        return v
+    elif v.size != size:
+        raise ValueError(err_message)
+    else:
+        return v
+
 def check_matrix(M, shape, err_message='wrong matrix shape'):
     if M is None:
         M = np.zeros(shape)
@@ -37,12 +46,12 @@ def rbf_derivative(rbf_value, rbf_center, rbf_width_inv, x):
 class StateSpaceModel:
     """
     classe decrivant un modele suivant les equations :
-        x_t+1 = sum_i(rho_i(x) h_i) + A x_t + B u_t + w_t, w_t zero mean with cov mat Q,rho_i RBF function
-        y_t = C x_t + D u_t + v_t, v_t zero mean with cov mat R
+        x_t+1 = sum_i(rho_i(x) h_i) + A x_t + B u_t + b + w_t, w_t zero mean with cov mat Q,rho_i RBF function
+        y_t = C x_t + D u_t + d + v_t, v_t zero mean with cov mat R
     permet de faire du filtering et du smoothing
     """
 
-    def __init__(self, isLinear=True, state_dim=None, input_dim=None, output_dim=None, Sigma_0=None, A=None, B=None, Q=None, C=None, D=None, R=None, rbf_parameters=None, rbf_coeffs=None):
+    def __init__(self, isLinear=True, state_dim=None, input_dim=None, output_dim=None, Sigma_0=None, A=None, B=None, b=None, Q=None, C=None, D=None, d=None, R=None, rbf_parameters=None, rbf_coeffs=None):
         self.isLinear = isLinear
 
         if state_dim is None:
@@ -61,12 +70,15 @@ class StateSpaceModel:
         else:
             self.output_dim = output_dim
 
+        self.b = check_vector(b, self.state_dim, 'vector b size must be equal to state_dim')
+        self.d = check_vector(d, self.output_dim, 'vector d size must de equal to output_dim')
+
         self.Sigma_0 = check_matrix(Sigma_0, (self.state_dim, self.state_dim), 'matrix Sigma_0 shape must be equal to self.state_dim')
-        self.A = check_matrix(A, (self.state_dim, self.state_dim), 'matrix A shape must equal to self.state_dim x self.state_dim')
-        self.B = check_matrix(B, (self.state_dim, self.input_dim), 'matrix B shape must equal to self.state_dim x self.input_dim')
-        self.Q = check_matrix(Q, (self.state_dim, self.state_dim), 'matrix Q shape must equal to self.state_dim x self.state_dim')
-        self.C = check_matrix(C, (self.output_dim, self.state_dim), 'matrix C shape must equal to self.output_dim x self.state_dim')
-        self.D = check_matrix(D, (self.output_dim, self.input_dim), 'matrix D shape must equal to self.output_dim x self.input_dim')
+        self.A = check_matrix(A, (self.state_dim, self.state_dim), 'matrix A shape must equal to state_dim x state_dim')
+        self.B = check_matrix(B, (self.state_dim, self.input_dim), 'matrix B shape must equal to state_dim x input_dim')
+        self.Q = check_matrix(Q, (self.state_dim, self.state_dim), 'matrix Q shape must equal to state_dim x state_dim')
+        self.C = check_matrix(C, (self.output_dim, self.state_dim), 'matrix C shape must equal to output_dim x state_dim')
+        self.D = check_matrix(D, (self.output_dim, self.input_dim), 'matrix D shape must equal to output_dim x input_dim')
         self.R = check_matrix(R, (self.output_dim, self.output_dim), 'matrix R shape must equal to self.output_dim')
         self.output_sequence = None
         self.state_sequence = None
@@ -154,9 +166,11 @@ class StateSpaceModel:
         # simplify notations
         A = self.A
         B = self.B
+        b = self.b
         Q = self.Q
         C = self.C
         D = self.D
+        d = self.d
         R = self.R
         AT = np.transpose(A)
         CT = np.transpose(C)
@@ -173,12 +187,12 @@ class StateSpaceModel:
                 x_1_0 = np.zeros(self.state_dim)
                 P_1_0 = self.Sigma_0
             else:
-                x_1_0 = A.dot(self.filtered_state_means[i-1][1]) + B.dot(self.input_sequence[i-1])
+                x_1_0 = A.dot(self.filtered_state_means[i-1][1]) + B.dot(self.input_sequence[i-1]) + b
                 P_1_0 = A.dot(self.filtered_state_covariance[i-1][1]).dot(AT) + Q
 
             # kalma gain matrix
             K = P_1_0.dot(CT).dot(inv(C.dot(P_1_0).dot(CT) + R))
-            x_1_1 = x_1_0 + K.dot(y - (C.dot(x_1_0) + D.dot(u)))
+            x_1_1 = x_1_0 + K.dot(y - (C.dot(x_1_0) + D.dot(u) + d))
             P_1_1 = P_1_0 - K.dot(C).dot(P_1_0)
 
             self.filtered_state_means.append([x_1_0, x_1_1])
