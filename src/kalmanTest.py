@@ -12,33 +12,35 @@ class TestStateSpaceModel(unittest.TestCase):
         """
             teste la construction d'une instance sans paramètre
         """
-        ssm = StateSpaceModel()
 
-        # verifier que les attributs minimaux sont bien définis
-        for i, attr in enumerate(STATE_SPACE_MODEL_MINIMAL_ATTRIBUTES):
-            self.assertIsNotNone(getattr(ssm, attr), 'attribute ' + attr + ' should not be None')
+        # tester le cas lineaire et non lineaire
+        for i, isLinear in enumerate([True, False]):
+            ssm = StateSpaceModel(isLinear=isLinear)
+
+            # verifier que les attributs minimaux sont bien définis
+            for i, attr in enumerate(STATE_SPACE_MODEL_MINIMAL_ATTRIBUTES):
+                self.assertIsNotNone(getattr(ssm, attr), 'attribute ' + attr + ' should not be None')
 
     def test_sample_method(self):
         """
             teste la méthode sample dans plusieurs cas
         """
-        ssm = StateSpaceModel()
-        ssm.draw_sample()
-        self.assertEqual(len(getattr(ssm, 'state_sequence')), 1)
+        # tester le cas lineaire et non lineaire
+        for i, isLinear in enumerate([True, False]):
+            # tester différentes dimensions pour les espaces
+            for j, (state_dim, output_dim) in enumerate(zip([1, 4, 3], [1, 3, 4])):
+                # tester différentes tailles
+                for k, n_sample in enumerate([1, 10]):
+                    ssm = StateSpaceModel(isLinear=isLinear, state_dim=state_dim, output_dim=output_dim)
+                    ssm.draw_sample(T=n_sample)
+                    self.assertEqual(len(getattr(ssm, 'state_sequence')), n_sample)
 
-        n_sample = 10
-        state_dim = 4
-        output_dim = 3
-        ssm = StateSpaceModel(state_dim=state_dim, output_dim=output_dim)
-        ssm.draw_sample(T=n_sample)
-        self.assertEqual(len(getattr(ssm, 'state_sequence')), n_sample)
-
-        # verifier que les vecteurs tirés ont les bonnes dimensions
-        for i in range(0,n_sample):
-            x = ssm.state_sequence[i]
-            y = ssm.output_sequence[i]
-            self.assertEqual(x.size, ssm.state_dim)
-            self.assertEqual(y.size, ssm.output_dim)
+                    # verifier que les vecteurs tirés ont les bonnes dimensions
+                    for i in range(0,n_sample):
+                        x = ssm.state_sequence[i]
+                        y = ssm.output_sequence[i]
+                        self.assertEqual(x.size, ssm.state_dim)
+                        self.assertEqual(y.size, ssm.output_dim)
 
     def test_kalman_methods(self):
         """
