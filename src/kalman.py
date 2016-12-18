@@ -81,55 +81,49 @@ class StateSpaceModel:
         self.C = check_matrix(C, (self.output_dim, self.state_dim), 'matrix C shape must equal to output_dim x state_dim')
         self.D = check_matrix(D, (self.output_dim, self.input_dim), 'matrix D shape must equal to output_dim x input_dim')
         self.R = check_matrix(R, (self.output_dim, self.output_dim), 'matrix R shape must equal to self.output_dim')
+
+        self.f_rbf_parameters = f_rbf_parameters
+        self.g_rbf_parameters = g_rbf_parameters
+        self.f_rbf_coeffs = f_rbf_coeffs
+        self.g_rbf_coeffs = g_rbf_coeffs
+
         self.output_sequence = None
         self.state_sequence = None
         self.input_sequence = None
 
-        if not self.is_f_linear:
-            if f_rbf_parameters is None:
-                print 'No rbf parameters provided for f, initialize them with linear Kalman Smoothing'
-                self.initialize_f_rbf_parameters()
-            else:
-                self.f_rbf_parameters = f_rbf_parameters
+        if not self.is_f_linear and self.f_rbf_parameters is None:
+            print 'No rbf parameters provided for f, initialize them with linear Kalman Smoothing'
+            self.initialize_f_rbf_parameters()
+        if not self.is_f_linear and self.f_rbf_coeffs is None:
+            self.f_rbf_coeffs = [np.ones(self.state_dim)] * self.f_rbf_parameters['n_rbf']
 
-            if f_rbf_coeffs is None:
-                self.f_rbf_coeffs = []
-                for i in range(0, self.f_rbf_parameters['n_rbf']):
-                    self.f_rbf_coeffs.append(np.ones(self.state_dim))
-            else:
-                self.f_rbf_coeffs = f_rbf_coeffs
+        if not self.is_g_linear and self.g_rbf_parameters is None:
+            print 'No rbf parameters provided for g, initialize them '
+            self.initialize_g_rbf_parameters()
+        if not self.is_g_linear and self.g_rbf_coeffs is None:
+            self.g_rbf_coeffs = [np.ones(self.state_dim)] * self.g_rbf_parameters['n_rbf']
 
-        if not self.is_g_linear:
-            if g_rbf_parameters is None:
-                print 'No rbf parameters provided for g, initialize them '
-                self.initialize_g_rbf_parameters()
-            else:
-                self.g_rbf_parameters = g_rbf_parameters
-
-            if g_rbf_coeffs is None:
-                self.g_rbf_coeffs = []
-                for i in range(0, self.f_rbf_parameters['n_rbf']):
-                    self.g_rbf_coeffs.append(np.ones(self.state_dim))
-            else:
-                self.g_rbf_coeffs = g_rbf_coeffs
-
-    def initialize_f_rbf_parameters(self):
+    def get_rbf_parameters_for_state(self):
         self.draw_sample(10 * DEFAULT_N_RBF)
         self.kalman_smoothing()
-        self.f_rbf_parameters = {
+
+        return {
             'n_rbf': DEFAULT_N_RBF,
             'centers': random.sample(self.smoothed_state_means, DEFAULT_N_RBF),#TODO : replace random selection by k-means
             'width': random.sample(self.smoothed_state_covariance, DEFAULT_N_RBF)
         }
 
+    def initialize_f_rbf_parameters(self):
+        if self.g_rbf_parameters is not None:
+            self.f_rbf_parameters = self.g_rbf_parameters
+        else:
+            self.f_rbf_parameters = self.get_rbf_parameters_for_state()
+
     def initialize_g_rbf_parameters(self):
-        raise Exception('>>>>>>>>>> NOT IMPLEMENTED YET <<<<<<<<<<')
-        # TODO
-        self.g_rbf_parameters = {
-            'n_rbf': DEFAULT_N_RBF,
-            'centers': [],
-            'width': []
-        }
+        if self.f_rbf_parameters is not None:
+            self.g_rbf_parameters = self.f_rbf_parameters
+        else:
+            self.g_rbf_parameters = self.get_rbf_parameters_for_state()
 
     def compute_f(self, x, u=None):
         if x.size != self.state_dim:
@@ -188,10 +182,8 @@ class StateSpaceModel:
         t = len(self.output_sequence)
 
         if input_sequence is None and self.input_sequence is None:
-            print 'WARNING: no input sequence'
-            self.input_sequence = []
-            for i in range(0,t):
-                self.input_sequence.append(np.zeros(self.input_dim))
+            print 'WARNING: no input sequence, setting it to zero'
+            self.input_sequence = [np.zeros(self.input_dim)] * t
 
         # simplify notations
         R = self.R
