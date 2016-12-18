@@ -46,15 +46,14 @@ class TestStateSpaceModel(unittest.TestCase):
         """
             teste les méthodes kalman_filtering et kalman_smoothing dans plusieurs cas
         """
-        # tester le cas lineaire seulement (non lineaire pas implémenté)
-        for i, is_f_linear in enumerate([True, False]):
+        for i, (is_f_linear, is_g_linear) in enumerate(zip([True, False, True, False], [True, True, False, False])):
             # tester différentes dimensions pour les espaces
             for j, (state_dim, output_dim) in enumerate(zip([1, 4, 3], [1, 3, 4])):
                 # tester différentes tailles
                 for k, n_sample in enumerate([1, 10]):
-                    ssm = StateSpaceModel(is_f_linear=is_f_linear, state_dim=state_dim, output_dim=output_dim)
+                    ssm = StateSpaceModel(is_f_linear=is_f_linear, is_g_linear=is_g_linear, state_dim=state_dim, output_dim=output_dim)
                     ssm.draw_sample(T=n_sample)
-                    is_extended = not is_f_linear
+                    is_extended = not is_f_linear or not is_g_linear
                     ssm.kalman_smoothing(is_extended=is_extended)# la methode kalman_smoothing appelle la méthode_kalman filtering
                     self.assertEqual(len(getattr(ssm, 'filtered_state_means')), n_sample)
                     self.assertEqual(len(getattr(ssm, 'filtered_state_covariance')), n_sample)

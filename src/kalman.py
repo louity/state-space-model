@@ -101,7 +101,7 @@ class StateSpaceModel:
             print 'No rbf parameters provided for g, initialize them '
             self.initialize_g_rbf_parameters()
         if not self.is_g_linear and self.g_rbf_coeffs is None:
-            self.g_rbf_coeffs = [np.ones(self.state_dim) for _ in range(0, self.g_rbf_parameters['n_rbf'])]
+            self.g_rbf_coeffs = [np.ones(self.output_dim) for _ in range(0, self.g_rbf_parameters['n_rbf'])]
 
     def get_rbf_parameters_for_state(self):
         self.draw_sample(10 * DEFAULT_N_RBF)
@@ -144,6 +144,25 @@ class StateSpaceModel:
 
         return f
 
+    def compute_g(self, x, u=None):
+        if x.size != self.state_dim:
+            raise ValueError('x vector must have state dimension')
+        elif u is None:
+            u = np.zeros(self.input_dim)
+        elif u.size != self.input_dim:
+            raise ValueError('u vector must have state dimension')
+
+        g = self.C.dot(x) + self.D.dot(u)
+
+        if not self.is_g_linear:
+            for i in range(0, self.g_rbf_parameters['n_rbf']):
+                center = self.g_rbf_parameters['centers'][i]
+                width = self.g_rbf_parameters['width'][i]
+                value = self.g_rbf_coeffs[i]
+                g += rbf(value, center, inv(width), x)
+
+        return g
+
     def compute_f_derivative(self, x, u=None):
         if x.size != self.state_dim:
             raise ValueError('x vector must have state dimension')
@@ -162,6 +181,25 @@ class StateSpaceModel:
                 df += rbf_derivative(value, center, inv(width), x)
 
         return df
+
+    def compute_g_derivative(self, x, u=None):
+        if x.size != self.state_dim:
+            raise ValueError('x vector must have state dimension')
+        elif u is None:
+            u = np.zeros(self.input_dim)
+        elif u.size != self.input_dim:
+            raise ValueError('u vector must have state dimension')
+
+        dg = self.C
+
+        if not self.is_g_linear:
+            for i in range(0, self.g_rbf_parameters['n_rbf']):
+                center = self.g_rbf_parameters['centers'][i]
+                width = self.g_rbf_parameters['width'][i]
+                value = self.g_rbf_coeffs[i]
+                dg += rbf_derivative(value, center, inv(width), x)
+
+        return dg
 
     def kalman_filtering(self, is_extended=False, input_sequence=None, output_sequence=None):
         """
@@ -211,9 +249,14 @@ class StateSpaceModel:
                 else:
                     x_tilde = self.filtered_state_means[i-1][1]
 
-                A = self.A + self.compute_f_derivative(x_tilde, self.input_sequence[i-1])
-                AT = np.transpose(A)
-                b = self.b + self.compute_f(x_tilde, self.input_sequence[i-1])
+                if not self.is_f_linear:
+                    A = self.A + self.compute_f_derivative(x_tilde, self.input_sequence[i-1])
+                    AT = np.transpose(A)
+                    b = self.b + self.compute_f(x_tilde, self.input_sequence[i-1])
+                if not self.is_g_linear:
+                    C = self.C + self.compute_g_derivative(x_tilde, self.input_sequence[i])
+                    CT = np.transpose(C)
+                    d = self.d + self.compute_g(x_tilde, self.input_sequence[i])
 
             if i == 0:
                 #initialization
