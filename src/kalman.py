@@ -95,13 +95,13 @@ class StateSpaceModel:
             print 'No rbf parameters provided for f, initialize them with linear Kalman Smoothing'
             self.initialize_f_rbf_parameters()
         if not self.is_f_linear and self.f_rbf_coeffs is None:
-            self.f_rbf_coeffs = [np.ones(self.state_dim)] * self.f_rbf_parameters['n_rbf']
+            self.f_rbf_coeffs = [np.ones(self.state_dim) for _ in range(0, self.f_rbf_parameters['n_rbf'])]
 
         if not self.is_g_linear and self.g_rbf_parameters is None:
             print 'No rbf parameters provided for g, initialize them '
             self.initialize_g_rbf_parameters()
         if not self.is_g_linear and self.g_rbf_coeffs is None:
-            self.g_rbf_coeffs = [np.ones(self.state_dim)] * self.g_rbf_parameters['n_rbf']
+            self.g_rbf_coeffs = [np.ones(self.state_dim) for _ in range(0, self.g_rbf_parameters['n_rbf'])]
 
     def get_rbf_parameters_for_state(self):
         self.draw_sample(10 * DEFAULT_N_RBF)
@@ -183,7 +183,7 @@ class StateSpaceModel:
 
         if input_sequence is None and self.input_sequence is None:
             print 'WARNING: no input sequence, setting it to zero'
-            self.input_sequence = [np.zeros(self.input_dim)] * t
+            self.input_sequence = [np.zeros(self.input_dim) for _ in range(0, t)]
 
         # simplify notations
         R = self.R
