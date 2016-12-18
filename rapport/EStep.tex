@@ -137,17 +137,12 @@ We define  as follow :
   \dot{x}_t &= \hat{x}_{t|t} = \mathbb{E}_p(x_t|y_1, \ldots , y_t, u_1, \ldots , u_t) \\
 \end{align*}
 As we see, $\dot{x}_t$ can be seen as the mean of probability  $p_{\theta}\left(x_t|y_1, u_1, \ldots, y_t, u_T \right )$ computed by the Kalman filter.
-Then, in the recursion formula, we just have to replace the matrices $A$ and $C$  by the matrices $A_t$ and $C_t$ :
+We also see that in the recursion forumla, the matrix $C$ and the vectors $b$ and $d$ do not appear.
+So we just have to replace the matrix $A$ by the matrix $A_t$ :
 \begin{align*}
   A_t &= \frac{\partial f}{\partial x}(\dot{x}_t, u_{t-1})\\
-  C_t &= \frac{\partial g}{\partial x}(\dot{x}_t, u_t)\\
 \end{align*}
-and we replace the vectors $b$ and $d$ by the vectors $b_t$ and $d_t$ :
-\begin{align*}
-  b_t &= b + f(\dot{x}_t, u_t)\\
-  d_t &= d + g(\dot{x}_t, u_t)\\
-\end{align*}
-The computations of $A_t$ and $C_t$ in term of our parameter $\theta$  and of the centers and width of our RBF functions are the same as in the Kalman filter replacing $\tilde{x}$ by $\dot{x}$.
+The computation of $A_t$ in term of our parameter $\theta$ and of the centers and width of our RBF functions is the same as in the Kalman filter, replacing $\tilde{x}$ by $\dot{x}$.
 
 So we end up with the means and covariance matrices of the probabilities
 \begin{align*}
