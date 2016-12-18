@@ -2,25 +2,51 @@
 
 The article miss at providing a full understanding on how Radial basis functions are used to compute exactly the M-step. In order to implement safely, it is of interest to write down all the analytic computations. So let's start from the beginning:\\
 
-At the M-step we have the knowledge of $p_{\theta_{old}}(x_k|\overline{u},\overline{y})$ and $p_{\theta_{old}}(x_k,x_{k+1}|\overline{u},\overline{y})$ for all possible value of $k$. From that we want $f$,$g$, $R$ and $Q$.\\ 
+At iteration $k$, in the M-step, we assume that states $(x_t, x_{t+1})$ and the joint state and output $(y_t, y_{t+1})$ follow the laws:
+\begin{align*}
+  \left[ \begin{array}{c} x_{t}\\ x_{t+1}\\ \end{array} \right] &\sim
+    \mathcal{N}\left(
+      \left[ \begin{array}{c} \hat{x}_{t|T}\\ \hat{x}_{t+1|T}\\ \end{array} \right],
+      \left[ \begin{array}{cc} \hat{P}_{t|T} & \hat{P}_{t,t+1|T}\\ \hat{P}_{t,t+1|T} & \hat{P}_{t+1|T}\\ \end{array} \right]
+    \right),
+    t=1 \ldots T-1\\
+  \left[ \begin{array}{c} x_{t}\\ y_{t}\\ \end{array} \right] &\sim
+    \mathcal{N}\left(
+      \left[ \begin{array}{c} \hat{x}_{t|T}\\  f(\hat{x}_{t|T}, u_t)\\ \end{array} \right],
+      \left[ \begin{array}{cc} \hat{P}_{t|T} & TODO \\ TODO & TODO\\ \end{array} \right]
+    \right),
+    t=1 \ldots T-1\\
+\end{align*}
+where the quantities $ \hat{x}_{t|T}, \hat{R}_{t|T}, \hat{P}_{t,t+1|T}$ were computed in the E-step.
+So the conditionnal probabilities $(p(x_{t+1} | x_t)$ and $p(y_t | x_t)$ are :
+\begin{align*}
+  p(x_{t+1} | x_t) &\sim \mathcal{N}\left( \hat{x}_{t+1|T} + \hat{P}_{t+1,t|T}\hat{P}_{t|T}^{-1}\hat{x}_{t|T}, \hat{P}_{t+1|T} +\hat{P}_{t,t+1|T} \hat{P}_{t|T}^{-1} \hat{P}_{t,t+1|T} \right)\\
+  p(y_t | x_t) &\sim \mathcal{N}\left( TODO , TODO \right)\\
+\end{align*}
 
-\begin{itemize}
-\item The use of the EKS was in fact done in a way such that $(x_k,x_{k+1})$ are Gaussian. So the knowledge of $p_{\theta_{old}}(x_k|\overline{u},\overline{y})$ and $p_{\theta_{old}}(x_k,x_{k+1}|\overline{u},\overline{y})$ boils down to covariance matrix and mean vector. Indeed these are the output of Kallman.
-\item $f$, $g$ have evolved from the land of non-linear arbitrariness to the heaven of radial basis functions. \textbf{Let's denote by $\theta_f$ and $\theta_g$, the respective parameters that stand for the representation of $f$ and $g$.}
-\end{itemize}
+Now we want to compute the updated parameter $\theta^{(k)} = (\theta_f^{(k)}, \theta_g^{(k)})$ (and $Q$ and $R$.)\\ 
 
-At the M-step, we estimate the parameters $(\theta)=(\theta_f,\theta_g,R,Q)$ by maximizing L, the expected complete likelihood. To write it we use the graph factorization of $p(x,y,u)$. For any sequence $x,y,u$ we have:
-\begin{eqnarray}
-p_{\theta}(x,y,u)&=& p_{\theta}(x_1)\prod_{t=1}^{T-1}{p_{\theta}(x_{t+1}|x_t,u_t)}\prod_{t=1}^{T-1}{p_{\theta}(u_t)}\prod_{t=1}^{T}{p_{\theta}(y_t|x_t,u_t)}
-%p_{\theta}(x,y,u)&=& p_{\theta}(x_1)\prod_{t=1}^{T-1}{\frac{p_{\theta}(x_{t+1},x_t|u_t)}{p_{\theta}(x_t|u_t)}}\prod_{t=1}^{T-1}{p_{\theta}(u_t)}\prod_{t=1}^{T}{\frac{p_{\theta}(y_t,x_t|u_t)}{p_{\theta}(x_t|u_t)}}
-\end{eqnarray}
-But here $y$ and $u$ are observed so that (denoting $\overline{y}$,$\overline{u}$) :
-\begin{eqnarray}
-%
-p_{\theta}(x,\overline{y},\overline{u})&=& p_{\theta}(x_1)\prod_{t=1}^{T-1}{p_{\theta}(x_{t+1}|x_t,\overline{u}_t)}\prod_{t=1}^{T}{p_{\theta}(\overline{y}_t|x_t,\overline{u}_t)}
-\end{eqnarray}
+The updated parameter $\theta^{(k)}$ is the maximizer of the expected complete likelihood :
+\begin{align*}
+  \theta^{(k)} &= argmax_{\theta}L(\theta)\\
+\end{align*}
+First we need to express $L(\theta)$ using the graph factorization.
+Our graphical model is the following :
+\begin{figure}[H]
+	\includegraphics[width=14cm]{screenshot_graphical_model.PNG}
+	\captionof{figure}{Graphical model of our system.}
+\end{figure}
+Firstly, the inputs $u_t$ are not modeled as random variable, so we don't take them into account in the factorization.
+Thus, the factorization over the graph yields :
+\begin{align*}
+p_{\theta}(x,y) &= p_{\theta}(x_1) \prod_{t=1}^{T-1}{p_{\theta}(x_{t+1}|x_t)} \prod_{t=1}^{T}{p_{\theta}(y_t|x_t)}\\
+\end{align*}
+Thus, if we observe the sequence $(\overline{y}_t)$, the ex
+\begin{align*}
+  p_{\theta}(x,\overline{y}) &= p_{\theta}(x_1) \prod_{t=1}^{T-1}{p_{\theta}(x_{t+1}|x_t)} \prod_{t=1}^{T}{p_{\theta}(\overline{y}_t|x_t)}\\
+\end{align*}
 
-Then the expected complete likelihood (over $p_{\theta_{old}}(x_t)$ and $p_{\theta_{old}}(x_t,x_{t+1})$) is written as:
+Then the expected complete likelihood (over $p_{\theta^{(k-1)}}(x_t)$ and $p_{\theta^{(k-1)}}(x_t,x_{t+1})$) is written as:
 \begin{eqnarray}
 L=\mathbb{E}_x(\log(p_{\theta}(x_1)))+\sum_{t=1}^{T-1}{\mathbb{E}_x(\log(p_{\theta}(x_{t+1}|x_t,\overline{u}_t)))}+\sum_{t=1}^{T}{\mathbb{E}_x(\log(p_{\theta}(\overline{y}_t|x_t,\overline{u}_t)))}\nonumber
 \end{eqnarray}

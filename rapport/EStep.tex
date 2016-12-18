@@ -1,13 +1,13 @@
 \section{E-Step}
 
-In the E-step, knowing the parameters $\theta = (\theta_f^{(k-1)}, \theta_g^{(k-1)})$ computed in the previous iteration, the output sequence $(y_t)_{t=1 \cdots T}$ and the input sequence $(u_t)_{t=1 \cdots T}$, we want to infer the sequences $(x_t)_{t=1 \ldots T}$ and $(x_t, x_{t+1})_{t=1 \ldots T-1}$.
+At iteration $k$, in the E-step, given the parameter $\theta^{(k-1)} = (\theta_f^{(k-1)}, \theta_g^{(k-1)})$ computed in the iteration $k-1$, we want to infer the sequences $(x_t)_{t=1 \ldots T}$ and $(x_t, x_{t+1})_{t=1 \ldots T-1}$ knowing the output sequence $(y_t)_{t=1 \cdots T}$ and the input sequence $(u_t)_{t=1 \cdots T}$.
 In other words we want to compute the conditional probabilities :
 \begin{align*}
-  &p_{\theta}\left(x_t|y_1, u_1, \ldots, y_T, u_T \right ), t=1 \ldots T\\
-  &p_{\theta}\left(x_t, x_{t+1}|y_1, u_1, \ldots, y_T, u_T \right ), t=1 \ldots T-1\\
+  &p_{\theta^{(k-1)}}\left(x_t|y_1, u_1, \ldots, y_T, u_T \right ), t=1 \ldots T\\
+  &p_{\theta^{(k-1)}}\left(x_t, x_{t+1}|y_1, u_1, \ldots, y_T, u_T \right ), t=1 \ldots T-1\\
 \end{align*}
 
-If we use the dynamics equations with $f$ and $g$, we have no guarantee that given a Gaussian probability for $x_t$, we have a Gaussian probability for $x_t+1$ and the computations become intractable.
+If we use the dynamics equations with $f$ and $g$, we have no guarantee that given a Gaussian probability for $x_t$, we have a Gaussian probability for $x_{t+1}$ and the computations become intractable.
 To solve this problem, the authors propose to linearize the dynamics equations as each time step $t$:
 \begin{align*}
 	x_{t+1} &= f(\hat{x}_t, u_t) + A_{\hat{x}_t} (x - x_t) + w_t\\
@@ -29,8 +29,8 @@ If the case where $f$ and $g$ are affine ($I=0$ et $J=0$) :
 \end{align*}
 the Kalman filter algorithm computes dynamically the conditional probabilities :
 \begin{align*}
-  &p_{\theta}\left(x_t|y_1, u_1, \ldots, y_t, u_t \right ), t=1 \ldots T\\
-  &p_{\theta}\left(x_t, x_{t+1}|y_1, u_1, \ldots, y_t, u_t \right ), t=1 \ldots T\\
+  &p_{\theta^{(k-1)}}\left(x_t|y_1, u_1, \ldots, y_t, u_t \right ), t=1 \ldots T\\
+  &p_{\theta^{(k-1)}}\left(x_t, x_{t+1}|y_1, u_1, \ldots, y_t, u_t \right ), t=1 \ldots T\\
 \end{align*}
 Since the probability of the first state $x_0$ and the noise sequences $(w_t)$ and $(v_t)$ are Gaussian and $f$ and $g$ are affine, all the probabilities are Gaussian.
 Thus we need to compute means and covariances.
@@ -93,8 +93,8 @@ and we replace the vectors $b$ and $d$ by the vectors $b_t$ and $d_t$ :
 \end{align*}
 and we get the conditionnal probabilities of interest :
 \begin{align*}
-  &p_{\theta}\left(x_t|y_1, u_1, \ldots, y_t, u_t \right ), t=1 \ldots T\\
-  &p_{\theta}\left(x_t, x_{t+1}|y_1, u_1, \ldots, y_t, u_t \right ), t=1 \ldots T-1\\
+  &p_{\theta^{(k-1)}}\left(x_t|y_1, u_1, \ldots, y_t, u_t \right ), t=1 \ldots T\\
+  &p_{\theta^{(k-1)}}\left(x_t, x_{t+1}|y_1, u_1, \ldots, y_t, u_t \right ), t=1 \ldots T-1\\
 \end{align*}
 
 \subsection{Rauch-Tung-Stribel smoother}
@@ -103,8 +103,8 @@ So all the computations done here were inspired from the computations done in th
 
 If the case where $f$ and $g$ are affine, the RTS smoother algorithm uses the conditionnal probabilities computed with Kalman filter to compute the conditional probabilities :
 \begin{align*}
-  &p_{\theta}\left(x_t|y_1, u_1, \ldots, y_T, u_T \right ), t=1 \ldots T\\
-  &p_{\theta}\left(x_t, x_{t+1}|y_1, u_1, \ldots, y_T, u_T \right ), t=1 \ldots T-1\\
+  &p_{\theta^{(k-1)}}\left(x_t|y_1, u_1, \ldots, y_T, u_T \right ), t=1 \ldots T\\
+  &p_{\theta^{(k-1)}}\left(x_t, x_{t+1}|y_1, u_1, \ldots, y_T, u_T \right ), t=1 \ldots T-1\\
 \end{align*}
 Once again, theses probabilities are Gaussian and only we need to compute their means and covariances.
 
@@ -136,7 +136,7 @@ We define  as follow :
 \begin{align*}
   \dot{x}_t &= \hat{x}_{t|t} = \mathbb{E}_p(x_t|y_1, \ldots , y_t, u_1, \ldots , u_t) \\
 \end{align*}
-As we see, $\dot{x}_t$ can be seen as the mean of probability  $p_{\theta}\left(x_t|y_1, u_1, \ldots, y_t, u_T \right )$ computed by the Kalman filter.
+As we see, $\dot{x}_t$ can be seen as the mean of probability  $p_{\theta^{(k-1)}}\left(x_t|y_1, u_1, \ldots, y_t, u_T \right )$ computed by the Kalman filter.
 We also see that in the recursion forumla, the matrix $C$ and the vectors $b$ and $d$ do not appear.
 So we just have to replace the matrix $A$ by the matrix $A_t$ :
 \begin{align*}
@@ -146,8 +146,8 @@ The computation of $A_t$ in term of our parameter $\theta$ and of the centers an
 
 So we end up with the means and covariance matrices of the probabilities
 \begin{align*}
-  &p_{\theta}\left(x_t|y_1, u_1, \ldots, y_T, u_T \right ), t=1 \ldots T\\
-  &p_{\theta}\left(x_t, x_{t+1}|y_1, u_1, \ldots, y_T, u_T \right ), t=1 \ldots T-1\\
+  &p_{\theta^{(k-1)}}\left(x_t|y_1, u_1, \ldots, y_T, u_T \right ), t=1 \ldots T\\
+  &p_{\theta^{(k-1)}}\left(x_t, x_{t+1}|y_1, u_1, \ldots, y_T, u_T \right ), t=1 \ldots T-1\\
 \end{align*}
 which are extactly what we wanted to compute during the E-step.
 So we can move to the M-step.
