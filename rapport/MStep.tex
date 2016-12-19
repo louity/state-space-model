@@ -2,53 +2,115 @@
 
 The article miss at providing a full understanding on how Radial basis functions are used to compute exactly the M-step. In order to implement safely, it is of interest to write down all the analytic computations. So let's start from the beginning:\\
 
-At the M-step we have the knowledge of $p_{\theta_{old}}(x_k|\overline{u},\overline{y})$ and $p_{\theta_{old}}(x_k,x_{k+1}|\overline{u},\overline{y})$ for all possible value of $k$. From that we want $f$,$g$, $R$ and $Q$.\\ 
-
-\begin{itemize}
-\item The use of the EKS was in fact done in a way such that $(x_k,x_{k+1})$ are Gaussian. So the knowledge of $p_{\theta_{old}}(x_k|\overline{u},\overline{y})$ and $p_{\theta_{old}}(x_k,x_{k+1}|\overline{u},\overline{y})$ boils down to covariance matrix and mean vector. Indeed these are the output of Kallman.
-\item $f$, $g$ have evolved from the land of non-linear arbitrariness to the heaven of radial basis functions. \textbf{Let's denote by $\theta_f$ and $\theta_g$, the respective parameters that stand for the representation of $f$ and $g$.}
-\end{itemize}
-
-At the M-step, we estimate the parameters $(\theta)=(\theta_f,\theta_g,R,Q)$ by maximizing L, the expected complete likelihood. To write it we use the graph factorization of $p(x,y,u)$. For any sequence $x,y,u$ we have:
-\begin{eqnarray}
-p_{\theta}(x,y,u)&=& p_{\theta}(x_1)\prod_{t=1}^{T-1}{p_{\theta}(x_{t+1}|x_t,u_t)}\prod_{t=1}^{T-1}{p_{\theta}(u_t)}\prod_{t=1}^{T}{p_{\theta}(y_t|x_t,u_t)}
-%p_{\theta}(x,y,u)&=& p_{\theta}(x_1)\prod_{t=1}^{T-1}{\frac{p_{\theta}(x_{t+1},x_t|u_t)}{p_{\theta}(x_t|u_t)}}\prod_{t=1}^{T-1}{p_{\theta}(u_t)}\prod_{t=1}^{T}{\frac{p_{\theta}(y_t,x_t|u_t)}{p_{\theta}(x_t|u_t)}}
-\end{eqnarray}
-But here $y$ and $u$ are observed so that (denoting $\overline{y}$,$\overline{u}$) :
-\begin{eqnarray}
-%
-p_{\theta}(x,\overline{y},\overline{u})&=& p_{\theta}(x_1)\prod_{t=1}^{T-1}{p_{\theta}(x_{t+1}|x_t,\overline{u}_t)}\prod_{t=1}^{T}{p_{\theta}(\overline{y}_t|x_t,\overline{u}_t)}
-\end{eqnarray}
-
-Then the expected complete likelihood (over $p_{\theta_{old}}(x_t)$ and $p_{\theta_{old}}(x_t,x_{t+1})$) is written as:
-\begin{eqnarray}
-L=\mathbb{E}_x(\log(p_{\theta}(x_1)))+\sum_{t=1}^{T-1}{\mathbb{E}_x(\log(p_{\theta}(x_{t+1}|x_t,\overline{u}_t)))}+\sum_{t=1}^{T}{\mathbb{E}_x(\log(p_{\theta}(\overline{y}_t|x_t,\overline{u}_t)))}\nonumber
-\end{eqnarray}
-\textbf{We want to maximize L and it is separable on $(\theta_f,Q)$, $(\theta_g,R)$}.\\
-
-Section 6.2.3 explains how to maximize each $\mathbb{E}_x(\log(p_{\theta}(\overline{y}_t,x_t)))$ over $(\theta_g,R)$ (situation (3) with j=1) and $\mathbb{E}_x(\log(p_{\theta}(x_{t+1},x_t)))$ over $(\theta_f,Q)$ (situation (1) with j=1).\\
-Introducing the author notations (it is the same for $g$, just replace $f$ by $g$): 
+At iteration $k$, in the M-step, we assume that the joint states $(x_t, x_{t+1})$ and the joint state and output $(x_t, y_t)$ follow the laws:
 \begin{align*}
-\theta_f & \overset{\Delta}{=} [h_1^f, \ldots, h_I^f, A^f, B^f, b^f] \\
-\Phi_f & \overset{\Delta}{=} [\rho_1^f(x),\ldots, \rho_I^f(x), x^T, u^T, 1]^T \quad\text{(always fixed)} 
+  \left[ \begin{array}{c} x_{t}\\ x_{t+1}\\ \end{array} \right] &\sim
+    \mathcal{N}\left(
+      \left[ \begin{array}{c} \hat{x}_{t|T}\\ \hat{x}_{t+1|T}\\ \end{array} \right],
+      \left[ \begin{array}{cc} \hat{P}_{t|T} & \hat{P}_{t,t+1|T}\\ \hat{P}_{t,t+1|T} & \hat{P}_{t+1|T}\\ \end{array} \right]
+    \right),
+    t=1 \ldots T-1\\
+  \left[ \begin{array}{c} x_{t}\\ y_{t}\\ \end{array} \right] &\sim
+    \mathcal{N}\left(
+      \left[ \begin{array}{c} \hat{x}_{t|T}\\  f(\hat{x}_{t|T}, u_t)\\ \end{array} \right],
+      \left[ \begin{array}{cc} \hat{P}_{t|T} & TODO \\ TODO & TODO\\ \end{array} \right]
+    \right),
+    t=1 \ldots T\\
 \end{align*}
-we are able to obtain close form for the optimal parameters in the M-step :
+where the quantities $ \hat{x}_{t|T}, \hat{P}_{t|T}, \hat{P}_{t,t+1|T}$ were computed in the E-step.
+We adopt the following notations :
+\begin{align*}
+  \mathcal{N}_{x_t} &= p(x_t)\\
+  \mathcal{N}_{(x_t,x_{t+1})} &= p(x_t, x_{t+1})\\
+\end{align*}
 
-\begin{eqnarray}
-(\hat{\theta}_f,\hat{Q})&=&\underset{\theta_f,Q}{\text{argmin }}{\left(\sum_{t=1}^{T-1}{
-<(x_{t+1}-\theta_f\Phi_f)^T Q^{-1}(x_{t+1}-\theta_f\Phi_f) >_{x_{t+1},x_t}+\log(|Q|)
-}\right)}\nonumber\\
-(\hat{\theta}_g,\hat{R})&=&\underset{\theta_g,R}{\text{argmin }}{\left(\sum_{t=1}^{T}{
-<(y_{t}-\theta_g\Phi_g)^T R^{-1}(y_{t}-\theta_g\Phi_g) >_{y_t,x_t}+\log(|R|)
-}\right)}\nonumber\\
-%\hat{\pi}&=& \underset{\pi}{\text{argmax }}{\mathbb{E}_x(\log(p_{\theta}(x_1)))}\nonumber
-\end{eqnarray}
+Now we want to compute the updated parameter $\theta^{(k)} = (\theta_f^{(k)}, \theta_g^{(k)})$ (and $Q$ and $R$.)\\ 
 
-Which leads to:
-\begin{eqnarray}
-\hat{\theta}_f&=&(\sum_{t=1}^{T-1}{<x_{t+1}\Phi_f^T >_{(x_t,x_{t+1})_{old}}})(\sum_{t=1}^{T-1}{<\Phi_f\Phi_f^T >_{(x_t,x_{t+1})_{old}}})^{-1}\\
-\hat{\theta}_g&=&(\sum_{t=1}^{T}{<y_{t}\Phi_g^T >_{(x_t)_{old}}})(\sum_{t=1}^{T}{<\Phi_g\Phi_g^T >_{(x_t)_{old}}})^{-1}
-\end{eqnarray}
+The updated parameter $\theta^{(k)}$ is the maximizer of the expected complete likelihood :
+\begin{align*}
+  \theta^{(k)} &= \underset{\theta}{\text{argmax }}L(\theta) = \underset{\theta}{\text{argmax }}l(\theta)\\
+\end{align*}
+where $l(\theta)$ is the expected log likelihood.
+First we need to express $l(\theta)$ using the graph factorization.
+Our graphical model is the following :
+\begin{figure}[H]
+	\includegraphics[width=14cm]{screenshot_graphical_model.PNG}
+	\captionof{figure}{Graphical model of our system.}
+\end{figure}
+Firstly, the inputs $u_t$ are not modeled as random variable, so we won't take them into account in the factorization.
+%\notes{If $u_t$ were random variables, we wouldn't have a tree anymore and the inference that we did in the E-Step would be complicated.}
+Thus, the factorization over the graph yields :
+\begin{align*}
+p_{\theta}(x_1, \ldots x_T, y_1, \ldots , y_T) &= p_{\theta}(x_1) \prod_{t=1}^{T-1}{p_{\theta}(x_{t+1}|x_t)} \prod_{t=1}^{T}{p_{\theta}(y_t|x_t)}\\
+\end{align*}
+Thus, the likelihood of the observed the sequence $\overline{y} = (\overline{y}_t)_{t=1 \ldots T}$ is :
+\begin{align*}
+  p_{\theta}(x_1, \ldots x_T, \overline{y}_1, \ldots , \overline{y}_T) &= p_{\theta}(x_1) \prod_{t=1}^{T-1}{p_{\theta}(x_{t+1}| x_t)} \prod_{t=1}^{T}{p_{\theta}(\overline{y}_t, x_t)}\\
+\end{align*}
+Taking the $log$ and expectation of this likelihood over $x$ (whose unconditionnal law is known by assumption) gives us the expected log-likelihood:
+\begin{align*}
+  l(\theta) & =
+    \mathbb{E}_x(\log(p_{\theta}(x_1))) +
+    \sum_{t=1}^{T-1}{\mathbb{E}_x \left( \log(p_{\theta}(x_{t+1}|x_t)) \right)} +
+    \sum_{t=1}^{T}{\mathbb{E}_x\left( \log(p_{\theta}(\overline{y}_t|x_t)) \right)}\nonumber \\
+\end{align*}
+These terms can be expressed in term our the $\hat{x}$ and $\hat{P}$ quantitites:
+\begin{align*}
+  \mathbb{E}_x(\log(p_{\theta}(x_1))) &= -\frac{1}{2}\int_x{\mathcal{N}_{x_1}(x) (x - \hat{x}_{1|1})^T \hat{P}_{1|1}^{-1} (x - \hat{x}_{1|1}) dx}\ (constant \  term)\\
+  \mathbb{E}_x \left( \log(p_{\theta}(x_{t+1}|x_t)) \right) &= -\frac{1}{2}\int_{x,x'}{\mathcal{N}_{(x_t,x_{t+1})}(x, x') ((x' - f(x,u_t))^T Q^{-1} (x' - f(x,u_t)) dxdx'}\\
+  \mathbb{E}_x\left( \log(p_{\theta}(\overline{y}_t|x_t)) \right) &= -\frac{1}{2}\int_x{\mathcal{N}_{x_t}(x) (\overline{y}_t - g(x, u_t))^T R^{-1} (\overline{y}_t - g(x, u_t)) dx}\\
+\end{align*}
+and the functions $f$ and $g$ can be expressed in terms of $\theta_f$ and $\theta_g$.\\
+
+\textbf{We see that the expected log-likelihood is separable on $(\theta_f,Q)$, $(\theta_g,R)$ and that the terms $\mathbb{E}_x\left( \log(p_{\theta}(\overline{y}_t|x_t)) \right)$ and $\mathbb{E}_x(\log(p_{\theta}(x_{t+1}|x_t)))$ have the same form}.\\
+
+In section 6.2.3 of the article, the authors explain how to deal with the maxization of terms of that form and give us a close form formula.
+Firstly, to get rid of the multiplying constants $-\frac{1}{2}$, we multiply the expected log likelihood by $-2$ such that our maximization problem becomes a minimization problem :
+\begin{align*}
+  \theta^{(k)} &= \underset{\theta}{\text{argmin }}l(\theta)\\
+\end{align*}
+Introducing the author notations :
+\begin{align*}
+  \Phi_f(x, u) &= [\rho_1(x), \ldots , \rho_I(x), x^T, u^T, 1]^T\\
+  \Phi_g(x, u) &= [\rho'_1(x), \ldots , \rho'_J(x), x^T, u^T, 1]^T\\
+  \left< . \right>_{x_t} &= \int_x{\mathcal{N}_{x_t}(x) \  .\  dx}\\
+  \left< . \right>_{x_t,x_{t+1}} &= \int_{x, x'}{\mathcal{N}_{(x_t, x_{t+1})}(x, x') \  . \  dx}dx'\\
+\end{align*} % NOTA : on ne devrait pas avoir les mêmes x et u pour f et g
+such that:
+\begin{align*}
+  f(x,u_t) = \theta_f \Phi_f(x, u) \text{ denoted }\theta_f \Phi_f\\
+  g(x,u_t) = \theta_g \Phi_g(x, u) \text{ denoted }\theta_g \Phi_g\\
+\end{align*}
+the expected log-likelihood minimization equation becomes:
+\begin{align*}
+  \left( \theta_f^{(k)},Q^{(k)} \right) &=
+    \underset{\theta_f,Q}{\text{argmin }}{\left(
+      \sum_{t=1}^{T-1}{\left< (x' - \theta_f\Phi_f)^T Q^{-1}(x' - \theta_f\Phi_f) \right>_{x_t,x_{t+1}}+\log(|Q|)}
+    \right)}\\
+  \left( \theta_g^{(k)}, R^{(k)} \right) &=
+    \underset{\theta_g,R}{\text{argmin }}{\left(
+      \sum_{t=1}^{T}{\left< (\overline{y}_{t} - \theta_g \Phi_g)^T R^{-1} (\overline{y}_{t} - \theta_g \Phi_g) \right>_{x_t}+\log(|R|)
+    }\right)}\\
+\end{align*}
+and we are able to obtain the optimal parameters in close form:
+\begin{align*}
+  \theta_f^{(k)} &=
+    \left(
+      \sum_{t=1}^{T-1}{\left< x' \Phi_f^T \right>_{x_t,x_{t+1}}}
+    \right)
+    \left(
+      \sum_{t=1}^{T-1}{\left< \Phi_f\Phi_f^T \right>_{x_t,x_{t+1}}}
+    \right)^{-1}
+  \\
+  \theta_g^{(k)} &=
+    \left(
+      \sum_{t=1}^{T}{\left< \overline{y}_{t}\Phi_g^T \right>_{x_t}}
+    \right)
+    \left(
+      \sum_{t=1}^{T}{\left<\Phi_g\Phi_g^T \right>_{x_t}}
+    \right)^{-1}
+    \\
+\end{align*}
 
 Note that implicitly,for $f$ and $g$, $\Phi=\Phi(x_t)$.
 
