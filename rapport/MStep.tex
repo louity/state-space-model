@@ -73,44 +73,82 @@ Introducing the author notations :
 \begin{align*}
   \Phi_f(x, u) &= [\rho_1(x), \ldots , \rho_I(x), x^T, u^T, 1]^T\\
   \Phi_g(x, u) &= [\rho'_1(x), \ldots , \rho'_J(x), x^T, u^T, 1]^T\\
-  \left< . \right>_{x_t} &= \int_x{\mathcal{N}_{x_t}(x) \  .\  dx}\\
-  \left< . \right>_{x_t,x_{t+1}} &= \int_{x, x'}{\mathcal{N}_{(x_t, x_{t+1})}(x, x') \  . \  dx}dx'\\
+  \left< F(.) \right>_{x_t} &= \int_x{\mathcal{N}_{x_t}(x) F(x) dx} = \mathbb{E}_{x_t} \left( F(x) \right)\\
+  \left< F(.) \right>_{x_t,x_{t+1}} &= \int_{x, x'}{\mathcal{N}_{(x_t, x_{t+1})}(x, x') F(x,x') dx}dx' = \mathbb{E}_{(x_t, x_{t+1})} \left( F(x, x') \right)\\
 \end{align*} % NOTA : on ne devrait pas avoir les mêmes x et u pour f et g
 such that:
 \begin{align*}
-  f(x,u_t) = \theta_f \Phi_f(x, u) \text{ denoted }\theta_f \Phi_f\\
-  g(x,u_t) = \theta_g \Phi_g(x, u) \text{ denoted }\theta_g \Phi_g\\
+  f(x,u_t) = \theta_f \Phi_f(x, u)\\
+  g(x,u_t) = \theta_g \Phi_g(x, u)\\
 \end{align*}
 the expected log-likelihood minimization equation becomes:
 \begin{align*}
   \left( \theta_f^{(k)},Q^{(k)} \right) &=
     \underset{\theta_f,Q}{\text{argmin }}{\left(
-      \sum_{t=1}^{T-1}{\left< (x' - \theta_f\Phi_f)^T Q^{-1}(x' - \theta_f\Phi_f) \right>_{x_t,x_{t+1}}+\log(|Q|)}
+      \sum_{t=1}^{T-1}{\left< (x, x') \mapsto (x' - \theta_f\Phi_f(x,u_t)^T Q^{-1}(x' - \theta_f\Phi_f(x,u_t)) \right>_{x_t,x_{t+1}}+\log(|Q|)}
     \right)}\\
   \left( \theta_g^{(k)}, R^{(k)} \right) &=
     \underset{\theta_g,R}{\text{argmin }}{\left(
-      \sum_{t=1}^{T}{\left< (\overline{y}_{t} - \theta_g \Phi_g)^T R^{-1} (\overline{y}_{t} - \theta_g \Phi_g) \right>_{x_t}+\log(|R|)
+      \sum_{t=1}^{T}{\left< x \mapsto (\overline{y}_{t} - \theta_g \Phi_g(x, u_t))^T R^{-1} (\overline{y}_{t} - \theta_g \Phi_g(x, u_t)) \right>_{x_t}+\log(|R|)
     }\right)}\\
 \end{align*}
 and we are able to obtain the optimal parameters in close form:
 \begin{align*}
   \theta_f^{(k)} &=
     \left(
-      \sum_{t=1}^{T-1}{\left< x' \Phi_f^T \right>_{x_t,x_{t+1}}}
+      \sum_{t=1}^{T-1}{\left< (x,x') \mapsto x' \Phi_f(x,u_t)^T \right>_{x_t,x_{t+1}}}
     \right)
     \left(
-      \sum_{t=1}^{T-1}{\left< \Phi_f\Phi_f^T \right>_{x_t,x_{t+1}}}
+      \sum_{t=1}^{T-1}{\left< x \mapsto \Phi_f(x, u_t)\Phi_f(x,u_t)^T \right>_{x_t}}
     \right)^{-1}
   \\
   \theta_g^{(k)} &=
     \left(
-      \sum_{t=1}^{T}{\left< \overline{y}_{t}\Phi_g^T \right>_{x_t}}
+      \sum_{t=1}^{T}{\left< x \mapsto \overline{y}_{t}\Phi_g(x,u_t)^T \right>_{x_t}}
     \right)
     \left(
-      \sum_{t=1}^{T}{\left<\Phi_g\Phi_g^T \right>_{x_t}}
+      \sum_{t=1}^{T}{\left< x \mapsto \Phi_g(x,u_t)\Phi_g(x,u_t)^T \right>_{x_t}}
     \right)^{-1}
     \\
 \end{align*}
+The interest of the RBF functions is that the expectations $\left< \ldots \right>_{x_t} = \mathbb{E}_{x_t} ( \ldots )$ and  $\left< \ldots \right>_{x_t,x_{t+1}} = \mathbb{E}_{(x_t, x_{t+1})}( \ldots )$ can be computed analatically and efficiently.
+Otherwise, as soon as the state space dimension is big (for example $\geq 5$), these expectations must be estimmated, which is very expensive.
 
-Note that implicitly,for $f$ and $g$, $\Phi=\Phi(x_t)$.
-
+To compute $\theta_f^{(k)}$, we need to compute the expectations:
+\begin{align*}
+  \left< (x,x') \mapsto x' \Phi_f(x,u_t)^T \right>_{x_t,x_{t+1}} &=
+    \left< (x,x') \mapsto [x'\rho_1(x), \ldots , x'\rho_I(x), x'x^T, x'u^T, x']\right>_{x_t,x_{t+1}}
+  \\
+  \left< x \mapsto \Phi_f(x, u_t)\Phi_f(x,u_t)^T \right>_{x_t} &=
+    \left< x \mapsto \left[
+      \begin{array}{cccc}
+        (\rho_i(x)\rho_j(x))_{i,j} & x^T \rho_i(x) & u^T \rho_i(x) & \rho_i(x) \\
+        \rho_j(x)x^T & x^T \rho_i(x) & u^T \rho_i(x) & TODO... \\
+      \end{array}
+    \right] \right>_{x_t}
+  \\
+\end{align*}
+So we need to compute the elementary expectations:
+\begin{align*}
+  &\left< (x,x') \mapsto x'\rho_i(x) \right>_{x_t,x_{t+1}}\\
+  &\left< (x,x') \mapsto x'x^T \right>_{x_t,x_{t+1}}\\
+  &\left< (x,x') \mapsto x' \right>_{x_t,x_{t+1}}\\
+  &\left< x \mapsto \rho_i(x)\rho_j(x) \right>_{x_t}\\
+  &\left< x \mapsto x^T \rho_i(x) \right>_{x_t}\\
+  &\left< x \mapsto \rho_i(x) \right>_{x_t}\\
+  &\left< x \mapsto xx^T \right>_{x_t}\\
+\end{align*}
+We begin with the simple ones :
+\begin{align*}
+  \left< (x,x') \mapsto x'\right>_{x_t,x_{t+1}} &= \hat{x}_{t+1|T}\\
+  \left< (x,x') \mapsto x'x^T\right>_{x_t,x_{t+1}} &= \hat{x}_{t+1|T}\hat{x}_{t|T}^T + \hat{P}_{t,t+1|T}\\
+  \left< x \mapsto xx^T\right>_{x_t} &= \hat{x}_{t|T}\hat{x}_{t|T}^T + P_{t|T}\\
+  \left< x \mapsto x\right>_{x_t} &= \hat{x}_{t|T}\\
+\end{align*}
+The expectations that involve RBF functions are more complicated to compute so we simply rewrite the formulas provided by the authors:
+\begin{align*}
+  \left<(x,x') \mapsto x'\rho_i(x)\right>_{x_t,x_{t+1}} &= TODO\\
+  \left<x \mapsto \rho_i(x)\rho_j(x)\right>_{x_t} &= \\
+  \left<x \mapsto x^T \rho_i(x)\right>_{x_t}\\
+  \left<x \mapsto \rho_i(x)\right>_{x_t}\\
+\end{align*}
