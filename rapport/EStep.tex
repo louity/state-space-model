@@ -1,19 +1,19 @@
 \section{E-Step}
 
-At iteration $k$, in the E-step, given the parameter $\theta^{(k-1)} = (\theta_f^{(k-1)}, \theta_g^{(k-1)})$ computed in the iteration $k-1$, we want to infer the sequences $(x_t)_{t=1 \ldots T}$ and $(x_t, x_{t+1})_{t=1 \ldots T-1}$ knowing the output sequence $(y_t)_{t=1 \cdots T}$ and the input sequence $(u_t)_{t=1 \cdots T}$.
+At iteration $k$, in the E-step, given the parameter $\theta^{(k-1)} = \left( \theta_f^{(k-1)}, \theta_g^{(k-1)}, Q^{(k-1)}, R^{(k-1)} \right)$ computed in the iteration $k-1$, we want to infer the sequences $(x_t)_{t=1 \ldots T}$ and $(x_t, x_{t+1})_{t=1 \ldots T-1}$ knowing the output sequence $(y_t)_{t=1 \cdots T}$ and the input sequence $(u_t)_{t=1 \cdots T}$.
 In other words we want to compute the conditional probabilities :
 \begin{align*}
-  &p_{\theta^{(k-1)}}\left(x_t|y_1, u_1, \ldots, y_T, u_T \right ), t=1 \ldots T\\
-  &p_{\theta^{(k-1)}}\left(x_t, x_{t+1}|y_1, u_1, \ldots, y_T, u_T \right ), t=1 \ldots T-1\\
+  &p_{\theta^{(k-1)}}\left(x_t \given y_1, u_1, \ldots, y_T, u_T \right), t=1 \ldots T\\
+  &p_{\theta^{(k-1)}}\left(x_t, x_{t+1} \given y_1, u_1, \ldots, y_T, u_T \right), t=1 \ldots T-1\\
 \end{align*}
 
 If we use the dynamics equations with $f$ and $g$, we have no guarantee that given a Gaussian probability for $x_t$, we have a Gaussian probability for $x_{t+1}$ and the computations become intractable.
 To solve this problem, the authors propose to linearize the dynamics equations as each time step $t$:
 \begin{align*}
-	x_{t+1} &= f(\hat{x}_t, u_t) + A_{\hat{x}_t} (x - x_t) + w_t\\
-  A_t &= \frac{\partial f}{\partial x}(\hat{x}_t)\\
-	y_t &= g(\hat{x}_t, u_t) + C_{\hat{x}_t} (x - x_t) + v_t\\
-  C_t &= \frac{\partial g}{\partial x}(\hat{x}_t)\\
+  x_{t+1} &= f(\hat{x}_t, u_t) + A_{\hat{x}_t} (x - \hat{x}_t) + w_t\\
+  A_t &= \frac{\partial f}{\partial x}(\hat{x}_t, u_t)\\
+  y_t &= g(\hat{x}_t, u_t) + C_{\hat{x}_t} (x - \hat{x}_t) + v_t\\
+  C_t &= \frac{\partial g}{\partial x}(\hat{x}_t, u_t)\\
 \end{align*}
 where $\hat{x}_t$ is a well chosen point.
 Then the functions are locally linear, thus all probabilities are Gaussian and we can adapt the classical inferences algorithms (\textbf{Kalman filter} and \textbf{Rauch-Tung-Stribel smoother}).
@@ -29,8 +29,8 @@ If the case where $f$ and $g$ are affine ($I=0$ et $J=0$) :
 \end{align*}
 the Kalman filter algorithm computes dynamically the conditional probabilities :
 \begin{align*}
-  &p_{\theta^{(k-1)}}\left(x_t|y_1, u_1, \ldots, y_t, u_t \right ), t=1 \ldots T\\
-  &p_{\theta^{(k-1)}}\left(x_t, x_{t+1}|y_1, u_1, \ldots, y_t, u_t \right ), t=1 \ldots T\\
+  &p_{\theta^{(k-1)}}\left(x_t \given y_1, u_1, \ldots, y_t, u_t \right), t=1 \ldots T\\
+  &p_{\theta^{(k-1)}}\left(x_t, x_{t+1} \given y_1, u_1, \ldots, y_t, u_t \right), t=1 \ldots T\\
 \end{align*}
 Since the probability of the first state $x_0$ and the noise sequences $(w_t)$ and $(v_t)$ are Gaussian and $f$ and $g$ are affine, all the probabilities are Gaussian.
 Thus we only need to compute means and covariances.
@@ -42,29 +42,29 @@ They don't give any reason for these simplifications, but we extended the comput
 
 We adopt the following notations:
 \begin{align*}
-  \hat{x}_{t|t} &= \mathbb{E}_p \left (x_t|y_1, \ldots , y_t, u_1, \ldots , u_t \right ) \\
-  \hat{x}_{t+1|t} &= \mathbb{E}_p \left (x_{t+1}|y_1, \ldots , y_t, u_1, \ldots , u_t \right ) \\
-  \hat{P}_{t|t} &= \mathbb{E}_p \left ((x_t - \hat{x}_{t|t})(x_t - \hat{x}_{t|t})^T|y_1, \ldots , y_t, u_1, \ldots , u_t \right ) \\
-  \hat{P}_{t+1|t} &= \mathbb{E}_p \left ((x_{t+1} - \hat{x}_{t+1|t})(x_{t+1} - \hat{x}_{t+1|t})^T|y_1, \ldots , y_t, u_1, \ldots , u_t \right ) \\
-  \hat{P}_{t,t+1|t} &= \mathbb{E}_p \left ((x_t - \hat{x}_{t|t})(x_{t+1} - \hat{x}_{t+1|t})^T|y_1, \ldots , y_t, u_1, \ldots , u_t \right ) \\
+  \hat{x}_{t \given t} &= \mathbb{E}_p \left(x_t \given y_1, \ldots , y_t, u_1, \ldots , u_t \right) \\
+  \hat{x}_{t+1 \given t} &= \mathbb{E}_p \left(x_{t+1} \given y_1, \ldots , y_t, u_1, \ldots , u_t \right) \\
+  \hat{P}_{t \given t} &= \mathbb{E}_p \left((x_t - \hat{x}_{t \given t})(x_t - \hat{x}_{t \given t})^{\top} \given y_1, \ldots , y_t, u_1, \ldots , u_t \right) \\
+  \hat{P}_{t+1 \given t} &= \mathbb{E}_p \left((x_{t+1} - \hat{x}_{t+1 \given t})(x_{t+1} - \hat{x}_{t+1 \given t})^{\top} \given y_1, \ldots , y_t, u_1, \ldots , u_t \right) \\
+  \hat{P}_{t,t+1 \given t} &= \mathbb{E}_p \left((x_t - \hat{x}_{t \given t})(x_{t+1} - \hat{x}_{t+1 \given t})^{\top} \given y_1, \ldots , y_t, u_1, \ldots , u_t \right) \\
 \end{align*}
 With these quanities, we can compute the conditionnal probabilities of interest.
 The Kalman filter gives us a recursion equation to compute these quanities :
 \begin{itemize}
   \item \textbf{Initialization}\\
     \begin{align*}
-      \hat{x}_{1|0} &= 0\\
-      \hat{P}_{1|0} &= \Sigma_0\\
+      \hat{x}_{1 \given 0} &= 0\\
+      \hat{P}_{1 \given 0} &= \Sigma_0\\
     \end{align*}
   \item \textbf{Forward recursion}\\
     For $t=1 \ldots T$ :
     \begin{align*}
-      \hat{x}_{t+1|t} &= A \hat{x}_{t|t} + B u_t + b\\
-      \hat{P}_{t+1|t} &= A \hat{P}_{t|t} A^T\\
-      \hat{P}_{t,t+1|t} &= \hat{P}_{t|t}A^T\\
-      K_{t+1} &= \hat{P}_{t+1|t}C^T(C \hat{P}_{t+1|t} C^T + R)^{-1}\\
-      \hat{x}_{t+1|t+1} &= x_{t+1|t} + K_{t+1} \left (y_{t+1} - (C\hat{x}_{t+1|t} + D u_t + d) \right )\\
-      \hat{P}_{t+1|t+1} &= \hat{P}_{t+1|t} - K_{t+1} C \hat{P}_{t+1|t}\\
+      \hat{x}_{t+1 \given t} &= A \hat{x}_{t \given t} + B u_t + b\\
+      \hat{P}_{t+1 \given t} &= A \hat{P}_{t \given t} A^{\top}\\
+      \hat{P}_{t,t+1 \given t} &= \hat{P}_{t \given t}A^{\top}\\
+      K_{t+1} &= \hat{P}_{t+1 \given t}C^{\top}(C \hat{P}_{t+1 \given t} C^{\top} + R^{(k-1)})^{-1}\\
+      \hat{x}_{t+1 \given t+1} &= x_{t+1 \given t} + K_{t+1} \left(y_{t+1} - (C\hat{x}_{t+1 \given t} + D u_t + d) \right)\\
+      \hat{P}_{t+1 \given t+1} &= \hat{P}_{t+1 \given t} - K_{t+1} C \hat{P}_{t+1 \given t}\\
     \end{align*}
     We compute the matrix $K_{t}$ (Kalman gain matrix) to simplify the computations.
 \end{itemize}
@@ -73,18 +73,18 @@ In our case, $f$ and $g$ are not linear.
 So for $t=1..T$ we linearize our functions $f$ and $g$ around the point $\tilde{x}_t$ and then we can apply the recursion equation below.
 We define $\tilde{x}_t$ as following :
 \begin{align*}
-  \tilde{x}_1 &= \hat{x}_{1|0}\\
-  \tilde{x}_{t+1} &= f(\hat{x}_{t|t}, u_t)\\
+  \tilde{x}_1 &= \hat{x}_{1 \given 0}\\
+  \tilde{x}_{t+1} &= f(\hat{x}_{t \given t}, u_t)\\
 \end{align*}
 Then, in the recursion formula, we just have to replace the matrices $A$ and $C$  by the matrices $A_t$ and $C_t$ :
 \begin{align*}
-  A_t &= \frac{\partial f}{\partial x}(\tilde{x}_t, u_{t-1})\\
+  A_t &= \frac{\partial f}{\partial x}(\tilde{x}_t, u_t)\\
   C_t &= \frac{\partial g}{\partial x}(\tilde{x}_t, u_t)\\
 \end{align*}
-that we can compute in term of our parameter $\theta = \left( h_1, \ldots , h_I, A, B, b, k_1, \ldots , k_J, C, D, d \right)$ and of the centers and width of our RBF functions $(c_1, S_1, \ldots ,c_I, S_I, c'_1, S'_1, \ldots , c'_J, S'_J)$:
+that we can compute in terms of our parameters $\theta_f^{(k-1)} = \left( h_1, \ldots , h_I, A, B, b \right)$ and $\theta_g^{(k-1)} = \left( k_1, \ldots , k_J, C, D, d \right)$ and of the centers and width of our RBF functions $(c_1, S_1, \ldots ,c_I, S_I, c'_1, S'_1, \ldots , c'_J, S'_J)$:
 \begin{align*}
-  A_t &= A + \sum_{i=1}^I \rho_i(\tilde{x}_t) h_i (\tilde{x}_t - c_i)^T S_i^{-1}\\
-  C_t &= \sum_{j=1}^J \rho'_j(\tilde{x}_t) k_j (\tilde{x}_t - c'_i)^T {S'_j}^{-1}\\
+  A_t &= A + \sum_{i=1}^I \rho_i(\tilde{x}_t) h_i (\tilde{x}_t - c_i)^{\top} S_i^{-1}\\
+  C_t &= C + \sum_{j=1}^J \rho'_j(\tilde{x}_t) k_j (\tilde{x}_t - c'_i)^{\top} {S'_j}^{-1}\\
 \end{align*}
 and we replace the vectors $b$ and $d$ by the vectors $b_t$ and $d_t$ :
 \begin{align*}
@@ -93,8 +93,8 @@ and we replace the vectors $b$ and $d$ by the vectors $b_t$ and $d_t$ :
 \end{align*}
 and we get the conditionnal probabilities of interest :
 \begin{align*}
-  &p_{\theta^{(k-1)}}\left(x_t|y_1, u_1, \ldots, y_t, u_t \right ), t=1 \ldots T\\
-  &p_{\theta^{(k-1)}}\left(x_t, x_{t+1}|y_1, u_1, \ldots, y_t, u_t \right ), t=1 \ldots T-1\\
+  &p_{\theta^{(k-1)}}\left(x_t \given y_1, u_1, \ldots, y_t, u_t \right), t=1 \ldots T\\
+  &p_{\theta^{(k-1)}}\left(x_t, x_{t+1} \given y_1, u_1, \ldots, y_t, u_t \right), t=1 \ldots T-1\\
 \end{align*}
 
 \subsection{Rauch-Tung-Stribel smoother}
@@ -103,29 +103,29 @@ So all the computations done here were inspired from the computations done in th
 
 If the case where $f$ and $g$ are affine, the RTS smoother algorithm uses the conditionnal probabilities computed with Kalman filter to compute the conditional probabilities :
 \begin{align*}
-  &p_{\theta^{(k-1)}}\left(x_t|y_1, u_1, \ldots, y_T, u_T \right ), t=1 \ldots T\\
-  &p_{\theta^{(k-1)}}\left(x_t, x_{t+1}|y_1, u_1, \ldots, y_T, u_T \right ), t=1 \ldots T-1\\
+  &p_{\theta^{(k-1)}}\left(x_t \given y_1, u_1, \ldots, y_T, u_T \right), t=1 \ldots T\\
+  &p_{\theta^{(k-1)}}\left(x_t, x_{t+1} \given y_1, u_1, \ldots, y_T, u_T \right), t=1 \ldots T-1\\
 \end{align*}
 Once again, theses probabilities are Gaussian and only we need to compute their means and covariances.
 
 We adopt the following notations:
 \begin{align*}
-  \hat{x}_{t|T} &= \mathbb{E}_p(x_t|y_1, \ldots , y_T, u_1, \ldots , u_T) \\
-  \hat{P}_{t|T} &= \mathbb{E}_p \left ((x_t - \hat{x}_{t|T})(x_t - \hat{x}_{t|T})^T|y_1, \ldots , y_T, u_1, \ldots , u_T \right ) \\
-  \hat{P}_{t,t+1|T} &= \mathbb{E}_p \left ((x_t - \hat{x}_{t|T})(x_{t+1} - \hat{x}_{t+1|T})^T|y_1, \ldots , y_T, u_1, \ldots , u_T \right ) \\
+  \hat{x}_{t \given T} &= \mathbb{E}_p(x_t \given y_1, \ldots , y_T, u_1, \ldots , u_T) \\
+  \hat{P}_{t \given T} &= \mathbb{E}_p \left((x_t - \hat{x}_{t \given T})(x_t - \hat{x}_{t \given T})^{\top} \given y_1, \ldots , y_T, u_1, \ldots , u_T \right) \\
+  \hat{P}_{t,t+1 \given T} &= \mathbb{E}_p \left((x_t - \hat{x}_{t \given T})(x_{t+1} - \hat{x}_{t+1 \given T})^{\top} \given y_1, \ldots , y_T, u_1, \ldots , u_T \right) \\
 \end{align*}
 With these quanities, we can compute the conditionnal probabilities of interest.
 The Kalman filter gives us a recursion equation to compute these quanities :
 \begin{itemize}
   \item \textbf{Initialization}\\
-    For the initialization, we need to run a Kalman filter to get the quantities $\hat{x}_{t|t}, \hat{P}_{t|t}$ for $t=1 \ldots T$ and $\hat{x}_{t+1|t}, \hat{P}_{t+1|t}, \hat{P}_{t,t+1|t}$ for $t=a \ldots T-1$.
+    For the initialization, we need to run a Kalman filter to get the quantities $\hat{x}_{t \given t}, \hat{P}_{t \given t}$ for $t=1 \ldots T$ and $\hat{x}_{t+1 \given t}, \hat{P}_{t+1 \given t}, \hat{P}_{t,t+1 \given t}$ for $t=a \ldots T-1$.
   \item \textbf{Backward recursion}\\
     For $t=T-1 \ldots 1$ :
     \begin{align*}
-      L_t &= \hat{P}_{t|t}A^T\hat{P}_{t+1|t}^{-1}\\
-      \hat{x}_{t|T} &= \hat{x}_{t|t} + L_t(\hat{x}_{t+1|T} - \hat{x}_{t+1|t})\\
-      \hat{P}_{t|T} &= \hat{P}_{t|t} + L_t(\hat{P}_{t+1|T} - \hat{P}_{t+1|t})L_t^T\\
-      \hat{P}_{t,t+1|T} &= \hat{P}_{t,t+1|t} - (\hat{x}_{t|t} - \hat{x}_{t|T})(\hat{x}_{t+1|t} - \hat{x}_{t+1|T})^T\\
+      L_t &= \hat{P}_{t \given t}A^{\top}\hat{P}_{t+1 \given t}^{-1}\\
+      \hat{x}_{t \given T} &= \hat{x}_{t \given t} + L_t(\hat{x}_{t+1 \given T} - \hat{x}_{t+1 \given t})\\
+      \hat{P}_{t \given T} &= \hat{P}_{t \given t} + L_t(\hat{P}_{t+1 \given T} - \hat{P}_{t+1 \given t})L_t^{\top}\\
+      \hat{P}_{t,t+1 \given T} &= \hat{P}_{t,t+1 \given t} - (\hat{x}_{t \given t} - \hat{x}_{t \given T})(\hat{x}_{t+1 \given t} - \hat{x}_{t+1 \given T})^{\top}\\
     \end{align*}
     We compute the matrix $L_{t}$ to simplify the computations.
 \end{itemize}
@@ -134,20 +134,20 @@ In our case, $f$ and $g$ are not linear.
 We linearize them around the point $\dot{x}_t$ and then we can apply the recursion equation below.
 We define  as follow :
 \begin{align*}
-  \dot{x}_t &= \hat{x}_{t|t} = \mathbb{E}_p(x_t|y_1, \ldots , y_t, u_1, \ldots , u_t) \\
+  \dot{x}_t &= \hat{x}_{t \given t} = \mathbb{E}_p(x_t \given y_1, \ldots , y_t, u_1, \ldots , u_t) \\
 \end{align*}
-As we see, $\dot{x}_t$ can be seen as the mean of probability  $p_{\theta^{(k-1)}}\left(x_t|y_1, u_1, \ldots, y_t, u_T \right )$ computed by the Kalman filter.
+As we see, $\dot{x}_t$ can be seen as the mean of probability  $p_{\theta^{(k-1)}}\left(x_t \given y_1, u_1, \ldots, y_t, u_T \right)$ computed by the Kalman filter.
 We also see that in the recursion forumla, the matrix $C$ and the vectors $b$ and $d$ do not appear.
 So we just have to replace the matrix $A$ by the matrix $A_t$ :
 \begin{align*}
-  A_t &= \frac{\partial f}{\partial x}(\dot{x}_t, u_{t-1})\\
+  A_t &= \frac{\partial f}{\partial x}(\dot{x}_t, u_t)\\
 \end{align*}
-The computation of $A_t$ in term of our parameter $\theta$ and of the centers and width of our RBF functions is the same as in the Kalman filter, replacing $\tilde{x}$ by $\dot{x}$.
+The computation of $A_t$ in term of our parameters $\theta_f^{(k-1)}$ and $\theta_g^{(k-1)}$ and of the centers and width of our RBF functions is the same as in the Kalman filter, replacing $\tilde{x}$ by $\dot{x}$.
 
 So we end up with the means and covariance matrices of the probabilities
 \begin{align*}
-  &p_{\theta^{(k-1)}}\left(x_t|y_1, u_1, \ldots, y_T, u_T \right ), t=1 \ldots T\\
-  &p_{\theta^{(k-1)}}\left(x_t, x_{t+1}|y_1, u_1, \ldots, y_T, u_T \right ), t=1 \ldots T-1\\
+  &p_{\theta^{(k-1)}}\left(x_t \given y_1, u_1, \ldots, y_T, u_T \right), t=1 \ldots T\\
+  &p_{\theta^{(k-1)}}\left(x_t, x_{t+1} \given y_1, u_1, \ldots, y_T, u_T \right), t=1 \ldots T-1\\
 \end{align*}
 which are extactly what we wanted to compute during the E-step.
 So we can move to the M-step.
