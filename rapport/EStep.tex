@@ -33,12 +33,12 @@ the Kalman filter algorithm computes dynamically the conditional probabilities :
   &p_{\theta^{(k-1)}}\left(x_t, x_{t+1}|y_1, u_1, \ldots, y_t, u_t \right ), t=1 \ldots T\\
 \end{align*}
 Since the probability of the first state $x_0$ and the noise sequences $(w_t)$ and $(v_t)$ are Gaussian and $f$ and $g$ are affine, all the probabilities are Gaussian.
-Thus we need to compute means and covariances.
+Thus we only need to compute means and covariances.
 
 The authors derive the computations of the Kalman filter only in the case where $B,b,D$ and $d$ are all zero.
-They don't give any reason for these simplifications.
-Is it lazyness?
-Is it intended for pedagoical reason?
+They don't give any reason for these simplifications, but we extended the computations to take those into account.
+%Is it lazyness?
+%Is it intended for pedagoical reason?
 
 We adopt the following notations:
 \begin{align*}
@@ -118,7 +118,7 @@ With these quanities, we can compute the conditionnal probabilities of interest.
 The Kalman filter gives us a recursion equation to compute these quanities :
 \begin{itemize}
   \item \textbf{Initialization}\\
-    For the initialization, we need run a Kalman filter to get the quantities $\hat{x}_{t|t}, \hat{P}_{t|t}$ for $t=1 \ldots T$ and $\hat{x}_{t+1|t}, \hat{P}_{t+1|t}, \hat{P}_{t,t+1|t}$ for $t=a \ldots T-1$.
+    For the initialization, we need to run a Kalman filter to get the quantities $\hat{x}_{t|t}, \hat{P}_{t|t}$ for $t=1 \ldots T$ and $\hat{x}_{t+1|t}, \hat{P}_{t+1|t}, \hat{P}_{t,t+1|t}$ for $t=a \ldots T-1$.
   \item \textbf{Backward recursion}\\
     For $t=T-1 \ldots 1$ :
     \begin{align*}
@@ -131,7 +131,7 @@ The Kalman filter gives us a recursion equation to compute these quanities :
 \end{itemize}
 
 In our case, $f$ and $g$ are not linear.
-We linearize our around the point $\dot{x}_t$ and then we can apply the recursion equation below.
+We linearize them around the point $\dot{x}_t$ and then we can apply the recursion equation below.
 We define  as follow :
 \begin{align*}
   \dot{x}_t &= \hat{x}_{t|t} = \mathbb{E}_p(x_t|y_1, \ldots , y_t, u_1, \ldots , u_t) \\
