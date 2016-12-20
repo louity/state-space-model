@@ -5,7 +5,7 @@ The article miss at providing a full understanding on how Radial basis functions
 
 At iteration $k$, in the M-step, we assume that the state sequence $(x_t)_{t=1 \ldots T}$ follow the Gaussian probabilities $q \left( (x_t)_{t=1 \ldots T} \right)$ such that the state $x_t$ follow the Gaussian probability:
 \begin{align*}
-  p(x_t) = \mathcal{N}\left( \hat{x}_{t|T}, \hat{P}_{t|T} \right), \  t=1 \ldots T\\
+  p(x_t) = \mathcal{N}\left( \hat{x}_{t \given T}, \hat{P}_{t \given T} \right), \  t=1 \ldots T\\
 \end{align*}
 and that the joint states $(x_t, x_{t+1})$ follow the Gaussian probability:
 \begin{align*}
@@ -13,14 +13,14 @@ and that the joint states $(x_t, x_{t+1})$ follow the Gaussian probability:
   \mathcal{N}
     \left(
       \left[
-        \begin{array}{c} \hat{x}_{t|T} \\ \hat{x}_{t+1|T} \end{array}
+        \begin{array}{c} \hat{x}_{t \given T} \\ \hat{x}_{t+1 \given T} \end{array}
       \right],
       \left[
-        \begin{array}{cc} \hat{P}_{t|T} & \hat{P}_{t,t+1|T}\\ \hat{P}_{t,t+1|T} & \hat{P}_{t+1|T} \end{array}
+        \begin{array}{cc} \hat{P}_{t \given T} & \hat{P}_{t,t+1 \given T}\\ \hat{P}_{t,t+1 \given T} & \hat{P}_{t+1 \given T} \end{array}
       \right]
     \right), \  t=1 \ldots T-1\\
 \end{align*}
-where the quantities the means $\hat{x}_{t|T}$ and covariance matrices $\hat{P}_{t|T}, \hat{P}_{t,t+1|T}$ were computed in the E-step.
+where the quantities the means $\hat{x}_{t \given T}$ and covariance matrices $\hat{P}_{t \given T}, \hat{P}_{t,t+1 \given T}$ were computed in the E-step.
 We adopt the following notations:
 \begin{align*}
   \mathcal{N}_{x_t} &= p(x_t)\\
@@ -44,28 +44,28 @@ Firstly, the inputs $u_t$ are not modeled as random variable, so we won't take t
 %\notes{If $u_t$ were random variables, we wouldn't have a tree anymore and the inference that we did in the E-Step would be complicated.}
 Thus, the factorization over the graph yields :
 \begin{align*}
-p_{\theta}(x_1, \ldots x_T, y_1, \ldots , y_T) &= p_{\theta}(x_1) \prod_{t=1}^{T-1}{p_{\theta}(x_{t+1}|x_t)} \prod_{t=1}^{T}{p_{\theta}(y_t|x_t)}\\
+p_{\theta}(x_1, \ldots x_T, y_1, \ldots , y_T) &= p_{\theta}(x_1) \prod_{t=1}^{T-1}{p_{\theta}(x_{t+1} \given x_t)} \prod_{t=1}^{T}{p_{\theta}(y_t \given x_t)}\\
 \end{align*}
 Thus, the likelihood of the observed the sequence $\overline{y} = (\overline{y}_t)_{t=1 \ldots T}$ is :
 \begin{align*}
-  p_{\theta}(x_1, \ldots x_T, \overline{y}_1, \ldots , \overline{y}_T) &= p_{\theta}(x_1) \prod_{t=1}^{T-1}{p_{\theta}(x_{t+1}| x_t)} \prod_{t=1}^{T}{p_{\theta}(\overline{y}_t | x_t)}\\
+  p_{\theta}(x_1, \ldots x_T, \overline{y}_1, \ldots , \overline{y}_T) &= p_{\theta}(x_1) \prod_{t=1}^{T-1}{p_{\theta}(x_{t+1}\given x_t)} \prod_{t=1}^{T}{p_{\theta}(\overline{y}_t \given x_t)}\\
 \end{align*}
 Taking the $\log$ and expectation of this likelihood over the probability $q \left( (x_t)_{t=1 \ldots T} \right)$ gives us the expected log-likelihood:
 \begin{align*}
   l(\theta) & =
     \mathbb{E}_q(\log(p_{\theta}(x_1))) +
-    \sum_{t=1}^{T-1}{\mathbb{E}_q \left( \log(p_{\theta}(x_{t+1}|x_t)) \right)} +
-    \sum_{t=1}^{T}{\mathbb{E}_q\left( \log(p_{\theta}(\overline{y}_t|x_t)) \right)}\nonumber \\
+    \sum_{t=1}^{T-1}{\mathbb{E}_q \left( \log(p_{\theta}(x_{t+1} \given x_t)) \right)} +
+    \sum_{t=1}^{T}{\mathbb{E}_q\left( \log(p_{\theta}(\overline{y}_t \given x_t)) \right)}\nonumber \\
 \end{align*}
 These terms can be expressed in term our the $\hat{x}$ and $\hat{P}$ quantitites:
 \begin{align*}
-  \mathbb{E}_q(\log(p_{\theta}(x_1))) &= -\frac{1}{2}\int_x{\mathcal{N}_{x_1}(x) (x - \hat{x}_{1|1})^T (\hat{P}_{1|1})^{-1} (x - \hat{x}_{1|1}) dx}\text{, constant term.}\\
-  \mathbb{E}_q \left( \log(p_{\theta}(x_{t+1}|x_t)) \right) &= -\frac{1}{2}\int_{x,x'}{\mathcal{N}_{(x_t,x_{t+1})}(x, x') ((x' - f(x,u_t))^T Q^{-1} (x' - f(x,u_t)) dxdx'}\\
-  \mathbb{E}_q\left( \log(p_{\theta}(\overline{y}_t|x_t)) \right) &= -\frac{1}{2}\int_x{\mathcal{N}_{x_t}(x) (\overline{y}_t - g(x, u_t))^T R^{-1} (\overline{y}_t - g(x, u_t)) dx}\\
+  \mathbb{E}_q(\log(p_{\theta}(x_1))) &= -\frac{1}{2}\int_x{\mathcal{N}_{x_1}(x) (x - \hat{x}_{1 \given 1})^{\top} (\hat{P}_{1 \given 1})^{-1} (x - \hat{x}_{1 \given 1}) dx}\text{, constant term.}\\
+  \mathbb{E}_q \left( \log(p_{\theta}(x_{t+1} \given x_t)) \right) &= -\frac{1}{2}\int_{x,x'}{\mathcal{N}_{(x_t,x_{t+1})}(x, x') ((x' - f(x,u_t))^{\top} Q^{-1} (x' - f(x,u_t)) dxdx'}\\
+  \mathbb{E}_q\left( \log(p_{\theta}(\overline{y}_t \given x_t)) \right) &= -\frac{1}{2}\int_x{\mathcal{N}_{x_t}(x) (\overline{y}_t - g(x, u_t))^{\top} R^{-1} (\overline{y}_t - g(x, u_t)) dx}\\
 \end{align*}
 and the functions $f$ and $g$ can be expressed in terms of $\theta_f$ and $\theta_g$.\\
 
-\textbf{We see that the expected log-likelihood is separable on $(\theta_f,Q)$, $(\theta_g,R)$ and that the terms $\mathbb{E}_q\left( \log(p_{\theta}(\overline{y}_t|x_t)) \right)$ and $\mathbb{E}_q(\log(p_{\theta}(x_{t+1}|x_t)))$ have the same form}.\\
+\textbf{We see that the expected log-likelihood is separable on $(\theta_f,Q)$, $(\theta_g,R)$ and that the terms $\mathbb{E}_q\left( \log(p_{\theta}(\overline{y}_t \given x_t)) \right)$ and $\mathbb{E}_q(\log(p_{\theta}(x_{t+1} \given x_t)))$ have the same form}.\\
 
 In section 6.2.3 of the article, the authors explain how to deal with the maxization of terms of that form and give us a close form formula.
 Firstly, to get rid of the multiplying constants $-\frac{1}{2}$, we multiply the expected log likelihood by $-2$ such that our maximization problem becomes a minimization problem :
@@ -74,10 +74,10 @@ Firstly, to get rid of the multiplying constants $-\frac{1}{2}$, we multiply the
 \end{align*}
 Introducing the author notations :
 \begin{align*}
-  \Phi_f(x, u) &= [\rho_1(x), \ldots , \rho_I(x), x^T, u^T, 1]^T\\
-  \Phi_g(x, u) &= [\rho'_1(x), \ldots , \rho'_J(x), x^T, u^T, 1]^T\\
-  \left< F(.) \right>_{x_t} &= \int_x{\mathcal{N}_{x_t}(x) F(x) dx} = \mathbb{E}_{x_t} \left( F(x) \right)\\
-  \left< F(.) \right>_{x_t,x_{t+1}} &= \int_{x, x'}{\mathcal{N}_{(x_t, x_{t+1})}(x, x') F(x,x') dx}dx' = \mathbb{E}_{(x_t, x_{t+1})} \left( F(x, x') \right)\\
+  \Phi_f(x, u) &= [\rho_1(x), \ldots , \rho_I(x), x^{\top}, u^{\top}, 1]^{\top}\\
+  \Phi_g(x, u) &= [\rho'_1(x), \ldots , \rho'_J(x), x^{\top}, u^{\top}, 1]^{\top}\\
+  \left< F(.) \right>_{x_t} &= \int_x{\mathcal{N}_{x_t}(x) F(x) dx} = \mathbb{E}_q \left( F(x_t) \right)\\
+  \left< F(.) \right>_{x_t,x_{t+1}} &= \int_{x, x'}{\mathcal{N}_{(x_t, x_{t+1})}(x, x') F(x,x') dx}dx' = \mathbb{E}_q \left( F(x_t, x_{t+1}) \right)\\
 \end{align*} % NOTA : on ne devrait pas avoir les mêmes x et u pour f et g
 such that:
 \begin{align*}
@@ -88,43 +88,43 @@ the expected log-likelihood minimization equation becomes:
 \begin{align*}
   \left( \theta_f^{(k)},Q^{(k)} \right) &=
     \underset{\theta_f,Q}{\text{argmin }}{\left(
-      \sum_{t=1}^{T-1}{\left< (x, x') \mapsto (x' - \theta_f\Phi_f(x,u_t))^T Q^{-1}(x' - \theta_f\Phi_f(x,u_t)) \right>_{x_t,x_{t+1}} + (T-1) \log(|Q|)}
+      \sum_{t=1}^{T-1}{\left< (x, x') \mapsto (x' - \theta_f\Phi_f(x,u_t))^{\top} Q^{-1}(x' - \theta_f\Phi_f(x,u_t)) \right>_{x_t,x_{t+1}} + (T-1) \log( \given Q \given )}
     \right)}\\
   \left( \theta_g^{(k)}, R^{(k)} \right) &=
     \underset{\theta_g,R}{\text{argmin }}{\left(
-      \sum_{t=1}^{T}{\left< x \mapsto (\overline{y}_{t} - \theta_g \Phi_g(x, u_t))^T R^{-1} (\overline{y}_{t} - \theta_g \Phi_g(x, u_t)) \right>_{x_t} + T \log(|R|)
+      \sum_{t=1}^{T}{\left< x \mapsto (\overline{y}_{t} - \theta_g \Phi_g(x, u_t))^{\top} R^{-1} (\overline{y}_{t} - \theta_g \Phi_g(x, u_t)) \right>_{x_t} + T \log( \given R \given )
     }\right)}\\
 \end{align*}
 and we are able to obtain the optimal parameters in close form:
 \begin{align*}
   \theta_f^{(k)} &=
     \left(
-      \sum_{t=1}^{T-1}{\left< (x,x') \mapsto x' \Phi_f(x,u_t)^T \right>_{x_t,x_{t+1}}}
+      \sum_{t=1}^{T-1}{\left< (x,x') \mapsto x' \Phi_f(x,u_t)^{\top} \right>_{x_t,x_{t+1}}}
     \right)
     \left(
-      \sum_{t=1}^{T-1}{\left< x \mapsto \Phi_f(x, u_t)\Phi_f(x,u_t)^T \right>_{x_t}}
+      \sum_{t=1}^{T-1}{\left< x \mapsto \Phi_f(x, u_t)\Phi_f(x,u_t)^{\top} \right>_{x_t}}
     \right)^{-1}
   \\
   Q^{(k)} &=
     \frac{1}{T-1}
     \left(
-      \sum_{t=1}^{T-1}{\left< x' \mapsto x'x'^T \right>_{x_{t+1}}} -
-      \theta_f^{(k)} \sum_{t=1}^{T-1}{\left< (x,x') \mapsto \Phi_f(x, u_t) x'^T \right>_{x_t,x_{t+1}}}
+      \sum_{t=1}^{T-1}{\left< x' \mapsto x'x'^{\top} \right>_{x_{t+1}}} -
+      \theta_f^{(k)} \sum_{t=1}^{T-1}{\left< (x,x') \mapsto \Phi_f(x, u_t) x'^{\top} \right>_{x_t,x_{t+1}}}
     \right)
   \\
   \theta_g^{(k)} &=
     \left(
-      \sum_{t=1}^{T}{\left< x \mapsto \overline{y}_{t}\Phi_g(x,u_t)^T \right>_{x_t}}
+      \sum_{t=1}^{T}{\left< x \mapsto \overline{y}_{t}\Phi_g(x,u_t)^{\top} \right>_{x_t}}
     \right)
     \left(
-      \sum_{t=1}^{T}{\left< x \mapsto \Phi_g(x,u_t)\Phi_g(x,u_t)^T \right>_{x_t}}
+      \sum_{t=1}^{T}{\left< x \mapsto \Phi_g(x,u_t)\Phi_g(x,u_t)^{\top} \right>_{x_t}}
     \right)^{-1}
   \\
   R^{(k)} &=
     \frac{1}{T}
     \left(
-      \sum_{t=1}^{T}{\overline{y}_t \overline{y}_t^T} -
-      \theta_g^{(k)} \sum_{t=1}^{T}{\left< x \mapsto \Phi_f(x, u_t) \overline{y}_t^T \right>_{x_t}}
+      \sum_{t=1}^{T}{\overline{y}_t \overline{y}_t^{\top}} -
+      \theta_g^{(k)} \sum_{t=1}^{T}{\left< x \mapsto \Phi_f(x, u_t) \overline{y}_t^{\top} \right>_{x_t}}
     \right)
   \\
 \end{align*}
@@ -132,70 +132,70 @@ Now the keypoint is to compute these expectations.
 
 To compute $\theta_f^{(k)}$ and $Q^{(k)}$, we need to compute the expectations:
 \begin{align*}
-  \left< (x,x') \mapsto x' \Phi_f(x,u_t)^T \right>_{x_t,x_{t+1}} &=
-    \left< (x,x') \mapsto [x'\rho_1(x), \ldots , x'\rho_I(x), x'x^T, x'u^T, x']\right>_{x_t,x_{t+1}}
+  \left< (x,x') \mapsto x' \Phi_f(x,u_t)^{\top} \right>_{x_t,x_{t+1}} &=
+    \left< (x,x') \mapsto [x'\rho_1(x), \ldots , x'\rho_I(x), x'x^{\top}, x'u^{\top}, x']\right>_{x_t,x_{t+1}}
   \\
-  \left< (x,x') \mapsto \Phi_f(x, u_t) x'^T \right>_{x_t,x_{t+1}} &=
-    \left< (x,x') \mapsto [x'\rho_1(x), \ldots , x'\rho_I(x), x'x^T, x'u^T, x']^T \right>_{x_t,x_{t+1}}
+  \left< (x,x') \mapsto \Phi_f(x, u_t) x'^{\top} \right>_{x_t,x_{t+1}} &=
+    \left< (x,x') \mapsto [x'\rho_1(x), \ldots , x'\rho_I(x), x'x^{\top}, x'u^{\top}, x']^{\top} \right>_{x_t,x_{t+1}}
   \\
-  \left< x \mapsto \Phi_f(x, u_t)\Phi_f(x,u_t)^T \right>_{x_t} &=
+  \left< x \mapsto \Phi_f(x, u_t)\Phi_f(x,u_t)^{\top} \right>_{x_t} &=
     \left< x \mapsto \left[
       \begin{array}{cccccc}
-        \rho_1(x)\rho_1(x)) & \ldots & \rho_1(x)\rho_I(x) & \rho_1(x)x^T & \rho_1(x)u^T & \rho_1(x) \\
+        \rho_1(x)\rho_1(x)) & \ldots & \rho_1(x)\rho_I(x) & \rho_1(x)x^{\top} & \rho_1(x)u^{\top} & \rho_1(x) \\
         \ldots & \ldots & \ldots & \ldots & \ldots & \ldots\\
-        \rho_I(x)\rho_1(x)) & \ldots & \rho_I(x)\rho_I(x) & \rho_I(x)x^T & \rho_I(x)u^T & \rho_I(x) \\
-        \rho_I(x)x & \ldots & \rho_I(x)x & xx^T & xu^T & x \\
-        \rho_I(x)u & \ldots & \rho_I(x)u & xu^T & uu^T & u \\
-        \rho_I(x) & \ldots & \rho_I(x) & x^T & u^T & 1 \\
+        \rho_I(x)\rho_1(x)) & \ldots & \rho_I(x)\rho_I(x) & \rho_I(x)x^{\top} & \rho_I(x)u^{\top} & \rho_I(x) \\
+        \rho_I(x)x & \ldots & \rho_I(x)x & xx^{\top} & xu^{\top} & x \\
+        \rho_I(x)u & \ldots & \rho_I(x)u & xu^{\top} & uu^{\top} & u \\
+        \rho_I(x) & \ldots & \rho_I(x) & x^{\top} & u^{\top} & 1 \\
       \end{array}
     \right]
   \right>_{x_t}
   \\
-  \left< x' \mapsto x'x'^T \right>_{x_{t+1}} &\\
+  \left< x' \mapsto x'x'^{\top} \right>_{x_{t+1}} &\\
 \end{align*}
 So we need to compute the elementary expectations:
 \begin{align*}
   &\left< (x,x') \mapsto \rho_i(x) x' \right>_{x_t,x_{t+1}}\\
-  &\left< (x,x') \mapsto x'x^T \right>_{x_t,x_{t+1}}\\
+  &\left< (x,x') \mapsto x'x^{\top} \right>_{x_t,x_{t+1}}\\
   &\left< (x,x') \mapsto x' \right>_{x_t,x_{t+1}}\\
-  &\left< x' \mapsto x'x'^T \right>_{x_{t+1}}\\
+  &\left< x' \mapsto x'x'^{\top} \right>_{x_{t+1}}\\
   &\left< x \mapsto \rho_i(x)\rho_j(x) \right>_{x_t}\\
   &\left< x \mapsto \rho_i(x) x \right>_{x_t}\\
   &\left< x \mapsto \rho_i(x) \right>_{x_t}\\
-  &\left< x \mapsto xx^T \right>_{x_t}\\
+  &\left< x \mapsto xx^{\top} \right>_{x_t}\\
   &\left< x \mapsto x \right>_{x_t}\\
 \end{align*}
 We begin with the simple ones :
 \begin{align*}
-  \left< (x,x') \mapsto x'\right>_{x_t,x_{t+1}} &= \hat{x}_{t+1|T}\\
-  \left< (x,x') \mapsto x'x^T\right>_{x_t,x_{t+1}} &= \hat{x}_{t+1|T} (\hat{x}_{t|T})^T + \hat{P}_{t,t+1|T}\\
-  \left< x \mapsto xx^T\right>_{x_t} &= \hat{x}_{t|T} (\hat{x}_{t|T})^T + P_{t|T}\\
-  \left< x \mapsto x\right>_{x_t} &= \hat{x}_{t|T}\\
+  \left< (x,x') \mapsto x'\right>_{x_t,x_{t+1}} &= \hat{x}_{t+1 \given T}\\
+  \left< (x,x') \mapsto x'x^{\top}\right>_{x_t,x_{t+1}} &= \hat{x}_{t+1 \given T} \hat{x}_{t \given T}^{\top} + \hat{P}_{t,t+1 \given T}\\
+  \left< x \mapsto xx^{\top}\right>_{x_t} &= \hat{x}_{t \given T} \hat{x}_{t \given T}^{\top} + \hat{P}_{t \given T}\\
+  \left< x \mapsto x\right>_{x_t} &= \hat{x}_{t \given T}\\
 \end{align*}
 For the other expectations, the authors make us observe that when we multiply the RBF function $\rho_i$ and $\mathcal(N)_{x_t}$, we obtain a Gaussian dentity in $\mathbb{R}^p$ with mean $\mu^i_t$ and covariance $\Sigma^i_t$ :
 \begin{align*}
-  \Sigma^i_t &= \left( (\hat{P}_{t|T})^{-1} + (S_i)^{-1} \right)^{-1}\\
-  \mu^i_t &= \Sigma^i_t \left( (\hat{P}_{t|T})^{-1} \hat{x}_{t|T} + (S_i)^{-1}c_i \right)\\
+  \Sigma^i_t &= \left( \hat{P}_{t \given T}^{-1} + S_i^{-1} \right)^{-1}\\
+  \mu^i_t &= \Sigma^i_t \left( \hat{P}_{t \given T}^{-1} \hat{x}_{t \given T} + S_i^{-1}c_i \right)\\
 \end{align*}
 multiplied by the constant $\beta^i_t$ (due to non-normalization):
 \begin{align*}
-  \beta^i_t &= (2\pi)^{-p/2} |S_i|^{-1/2} |\hat{P}_{t|T}|^{-1/2} |\Sigma^i_t|^{1/2}| exp(-\frac{1}{2} \delta^i_t)\\
-  \delta^i_t &= (c_i)^T (S_i)^{-1} c_i + (\hat{x}_{t|T})^T (\hat{P}_{t|T})^{-1} \hat{x}_{t|T} - (\mu^i_t)^T \Sigma^i_t \mu^i_t\\
+  \beta^i_t &= (2\pi)^{-p/2} |S_i|^{-1/2} |\hat{P}_{t|T}|^{-1/2} |\Sigma^i_t|^{1/2}\given exp(-\frac{1}{2} \delta^i_t)\\
+  \delta^i_t &= c_i^{\top} S_i^{-1} c_i + \hat{x}_{t \given T}^{\top} \hat{P}_{t \given T}^{-1} \hat{x}_{t \given T} - {\mu^i_t}^{\top} \Sigma^i_t \mu^i_t\\
 \end{align*}
 Using these notations, the expectations involving $x_t$ and $\rho_i$ can be computed:
 \begin{align*}
-  \left< x \mapsto \rho_i(x) x \right>_{x_t} &= \beta^i_t \hat{x}_{t|T}\\
+  \left< x \mapsto \rho_i(x) x \right>_{x_t} &= \beta^i_t \hat{x}_{t \given T}\\
   \left< x \mapsto \rho_i(x) \right>_{x_t} &= \beta^i_t\\
 \end{align*}
 Identically, when we multiply the product $\rho_i \rho_j$ and $\mathcal(N)_{x_t}$, we obtain a Gaussian dentity in $\mathbb{R}^p$ with mean $\mu^{i,j}_t$ and covariance $\Sigma^{i,j}_t$ :
 \begin{align*}
-  \Sigma^{i,j}_t &= \left( (\hat{P}_{t|T})^{-1} + (S_i)^{-1} + S_j^{-1} \right)^{-1}\\
-  \mu^{i,j}_t &= \Sigma^{i,j}_t \left( (\hat{P}_{t|T})^{-1} \hat{x}_{t|T} + (S_i)^{-1}c_i + S_j^{-1}c_j \right)\\
+  \Sigma^{i,j}_t &= \left( \hat{P}_{t \given T}^{-1} + S_i^{-1} + S_j^{-1} \right)^{-1}\\
+  \mu^{i,j}_t &= \Sigma^{i,j}_t \left( \hat{P}_{t \given T}^{-1} \hat{x}_{t \given T} + S_i^{-1}c_i + S_j^{-1}c_j \right)\\
 \end{align*}
 multiplied by the constant $\beta^{i,j}_t$ (due to non-normalization):
 \begin{align*}
-  \beta^{i,j}_t &= (2\pi)^{-p} |S_i|^{-1/2} |S_j|^{-1/2} |\hat{P}_{t|T}|^{-1/2} |\Sigma^{i,j}_t|^{1/2}| exp(-\frac{1}{2} \delta^{i,j}_t)\\
-  \delta^{i,j}_t &= (c_i)^T (S_i)^{-1} c_i + c_j^T S_j^{-1} c_j + (\hat{x}_{t|T})^T (\hat{P}_{t|T})^{-1} \hat{x}_{t|T} - (\mu^{i,j}_t)^T (\Sigma^{i,j}_t)^{-1} \mu^{i,j}_t\\
+  \beta^{i,j}_t &= (2\pi)^{-p} |S_i|^{-1/2} |S_j|^{-1/2} |\hat{P}_{t|T}|^{-1/2} |\Sigma^{i,j}_t|^{1/2}\given exp(-\frac{1}{2} \delta^{i,j}_t)\\
+  \delta^{i,j}_t &= c_i^{\top} S_i^{-1} c_i + c_j^{\top} S_j^{-1} c_j + \hat{x}_{t \given T}^{\top} \hat{P}_{t \given T}^{-1} \hat{x}_{t \given T} - {\mu^{i,j}_t}^{\top} {\Sigma^{i,j}_t}^{-1} \mu^{i,j}_t\\
 \end{align*}
 and the expectation involving the product $\rho_i \rho_j$ is:
 \begin{align*}
@@ -206,32 +206,32 @@ Finally, when we multiply the RBF function $\rho_i$ and $\mathcal(N)_{(x_{t,t+1}
   \Sigma^i_{t,t+1} &=
     \left(
       \left[
-        \begin{array}{cc} \hat{P}_{t|T} & \hat{P}_{t,t+1|T}\\ \hat{P}_{t,t+1|T} & \hat{P}_{t+1|T} \end{array}
+        \begin{array}{cc} \hat{P}_{t \given T} & \hat{P}_{t,t+1 \given T}\\ \hat{P}_{t,t+1 \given T} & \hat{P}_{t+1 \given T} \end{array}
       \right]^{-1}
        +
       \left[
-        \begin{array}{cc} (S_i)^{-1} & 0\\ 0 & 0 \end{array}
+        \begin{array}{cc} S_i^{-1} & 0\\ 0 & 0 \end{array}
       \right]
     \right)^{-1}
   \\
   \mu^i_{t,t+1} &= \Sigma^i_{t,t+1}
     \left(
       \left[
-        \begin{array}{cc} \hat{P}_{t|T} & \hat{P}_{t,t+1|T}\\ \hat{P}_{t,t+1|T} & \hat{P}_{t+1|T} \end{array}
+        \begin{array}{cc} \hat{P}_{t \given T} & \hat{P}_{t,t+1 \given T}\\ \hat{P}_{t,t+1 \given T} & \hat{P}_{t+1 \given T} \end{array}
       \right]^{-1}
       \left[
-        \begin{array}{c} \hat{x}_{t|T} \\ \hat{x}_{t+1|T} \end{array}
+        \begin{array}{c} \hat{x}_{t \given T} \\ \hat{x}_{t+1 \given T} \end{array}
       \right] +
       \left[
-        \begin{array}{c} (S_i)^{-1}c_i \\ 0 \end{array}
+        \begin{array}{c} S_i^{-1}c_i \\ 0 \end{array}
       \right]
     \right)
   \\
 \end{align*}
 multiplied by a constant $\beta^{i}_{t,t+1}$ :
 \begin{align*}
-  \beta^i_{t,t+1} &= (2\pi)^{-p/2} |S_i|^{-1/2} |\hat{P}_{t|T}|^{-1/2} |\Sigma^i_{t,t+1}|^{1/2}| exp(-\frac{1}{2} \delta^i_{t,t+1})\\
-  \delta^i_{t,t+1} &= (c_i)^T (S_i)^{-1} c_i + (\hat{x}_{t|T})^T (\hat{P}_{t|T})^{-1} \hat{x}_{t|T} - (\mu^i_{t,t+1})^T (\Sigma^i_{t,t+1})^{-1} \mu^i_{t,t+1}\\
+  \beta^i_{t,t+1} &= (2\pi)^{-p/2} |S_i|^{-1/2} |\hat{P}_{t|T}|^{-1/2} |\Sigma^i_{t,t+1}|^{1/2}\given exp(-\frac{1}{2} \delta^i_{t,t+1})\\
+  \delta^i_{t,t+1} &= c_i^{\top} S_i^{-1} c_i + \hat{x}_{t \given T}^{\top} \hat{P}_{t \given T}^{-1} \hat{x}_{t \given T} - {\mu^i_{t,t+1}}^{\top} {\Sigma^i_{t,t+1}}^{-1} \mu^i_{t,t+1}\\
 \end{align*}
 Thus the last expectation is :
 \begin{align*}
