@@ -6,4 +6,5 @@
 rapport/*.log
 rapport/*.aux
 rapport/*.pdf
-
+*.bbl
+*.blg
