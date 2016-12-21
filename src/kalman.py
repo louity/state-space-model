@@ -249,14 +249,14 @@ class StateSpaceModel:
                 else:
                     x_tilde = self.filtered_state_means[i-1][1]
 
-                if not self.is_f_linear:
-                    A = self.A + self.compute_f_derivative(x_tilde, self.input_sequence[i-1])
-                    AT = np.transpose(A)
-                    b = self.b + self.compute_f(x_tilde, self.input_sequence[i-1])
-                if not self.is_g_linear:
-                    C = self.C + self.compute_g_derivative(x_tilde, self.input_sequence[i])
-                    CT = np.transpose(C)
-                    d = self.d + self.compute_g(x_tilde, self.input_sequence[i])
+                    if not self.is_f_linear:
+                        A = self.A + self.compute_f_derivative(x_tilde, self.input_sequence[i-1])
+                        AT = np.transpose(A)
+                        b = self.b + self.compute_f(x_tilde, self.input_sequence[i-1])
+                    if not self.is_g_linear:
+                        C = self.C + self.compute_g_derivative(x_tilde, self.input_sequence[i])
+                        CT = np.transpose(C)
+                        d = self.d + self.compute_g(x_tilde, self.input_sequence[i])
 
             if i == 0:
                 #initialization
@@ -266,7 +266,7 @@ class StateSpaceModel:
                 x_1_0 = A.dot(self.filtered_state_means[i-1][1]) + B.dot(self.input_sequence[i-1]) + b
                 P_1_0 = A.dot(self.filtered_state_covariance[i-1][1]).dot(AT) + Q
 
-            # kalma gain matrix
+            # kalman gain matrix
             K = P_1_0.dot(CT).dot(inv(C.dot(P_1_0).dot(CT) + R))
             x_1_1 = x_1_0 + K.dot(y - (C.dot(x_1_0) + D.dot(u) + d))
             P_1_1 = P_1_0 - K.dot(C).dot(P_1_0)
