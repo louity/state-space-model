@@ -1,7 +1,7 @@
 \documentclass[11pt, oneside]{amsart}
 \usepackage{geometry}
 \geometry{letterpaper}
-\usepackage[francais]{babel}
+\usepackage[english]{babel}
 \usepackage[utf8]{inputenc}
 \usepackage{graphicx}
 \usepackage{float}
@@ -12,8 +12,10 @@
 \usepackage{caption}
 \usepackage{listings}
 \usepackage{array}
-
+\usepackage{cite}
 \graphicspath{{images/}}
+
+\newcommand{\given}{\mathbin{\vert}}
 
 \title[]{Project report, PGM}
 \author[1]{Louis Thiry}
@@ -34,5 +36,8 @@
 \input{EStep.tex}
 
 \input{MStep.tex}
+
+\bibliographystyle{alpha}
+\bibliography{biblio}
 
 \end{document}

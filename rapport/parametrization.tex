@@ -1,6 +1,7 @@
+\bibliographystyle{plain}
 \section{Parametrization of the functions}
 
-As we said below, the functions $f$ and $g$ must be parametrized.
+As we said above, the functions $f$ and $g$ must be parametrized.
 The authors propose the following parametrizations for $f$ and $g$ :
 
 \begin{align*}
@@ -16,18 +17,18 @@ The authors propose the following parametrizations for $f$ and $g$ :
 
 The real valued functions $\rho_i$ and $\rho'_j$ are called radial basis functions (RBF).
 The centers $c_i$ and $c'_j$ of the RBF are supposed to be known, as well as the width $S_i$ and $S'_j$.
-We will see further that can be leanrt, but for the moments, we suppose that they are knows.
+We will see further that they can be learnt but, for the moment, we suppose that they are known.
 
 
 So $f$ is the sum of an affine function ($x \rightarrow Ax + b$) and $I$ radial basis functions ($x \mapsto \rho_i(x) h_i$, $i=1 \cdots I$).
-The parameters $\theta_f$ and $\theta_g$ are of our functions are :
+The parameters $\theta_f$ and $\theta_g$ of our functions are :
 
 \begin{align*}
   \theta_f &= \left( h_1, \ldots , h_I, A, B, b\right) \\
   \theta_g &= \left( k_1, \ldots , k_J, C, D, d\right) \\
 \end{align*}
 
-If use no inputs and set the state dimension to 1 ($n = 1$), $f : \mathbb{R} \to \mathbb{R}$ can have the following for on the segment $\left [ 0 , 1 \right ]$:
+If use no inputs and set the state dimension to 1 ($n = 1$), $f : \mathbb{R} \to \mathbb{R}$ can have the following form on the segment $\left [ 0 , 1 \right ]$:
 
 \begin{figure}[H]
 \captionsetup{labelformat=empty}
@@ -45,4 +46,4 @@ If use no inputs and set the state dimension to 1 ($n = 1$), $f : \mathbb{R} \to
 \endminipage\hfill
 \end{figure}
 
-Yet that the functions $f$ and $g$ are parametrized, we can begin with the study of the proposed EM algorithm.
+Now that the functions $f$ and $g$ are parametrized, we can begin with the study of the proposed EM algorithm.
