@@ -1,6 +1,7 @@
 # coding: utf8
-from kalman import StateSpaceModel
+
 import unittest
+from kalman import StateSpaceModel
 
 STATE_SPACE_MODEL_MINIMAL_ATTRIBUTES = ['is_f_linear', 'state_dim', 'input_dim', 'output_dim', 'Sigma_0', 'A', 'B', 'Q', 'C', 'D', 'R']
 
@@ -18,7 +19,7 @@ class TestStateSpaceModel(unittest.TestCase):
             ssm = StateSpaceModel(is_f_linear=is_f_linear)
 
             # verifier que les attributs minimaux sont bien définis
-            for i, attr in enumerate(STATE_SPACE_MODEL_MINIMAL_ATTRIBUTES):
+            for j, attr in enumerate(STATE_SPACE_MODEL_MINIMAL_ATTRIBUTES):
                 self.assertIsNotNone(getattr(ssm, attr), 'attribute ' + attr + ' should not be None')
 
     def test_sample_method(self):
@@ -36,7 +37,7 @@ class TestStateSpaceModel(unittest.TestCase):
                     self.assertEqual(len(getattr(ssm, 'state_sequence')), n_sample)
 
                     # verifier que les vecteurs tirés ont les bonnes dimensions
-                    for i in range(0,n_sample):
+                    for i in range(0, n_sample):
                         x = ssm.state_sequence[i]
                         y = ssm.output_sequence[i]
                         self.assertEqual(x.size, ssm.state_dim)

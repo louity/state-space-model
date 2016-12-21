@@ -19,7 +19,7 @@ def check_vector(v, size, err_message='wrong vector size'):
 
 def check_matrix(M, shape, err_message='wrong matrix shape'):
     if M is None:
-        M = np.zeros(shape)
+        M = np.zeros(shape) # Pourquoi pas un np.eye(shape) ? fonctionne avec matrice rectangulaire aussi
         for i in range(0, min(shape)):
             M[i, i] = 1.0
         return M
