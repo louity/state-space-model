@@ -107,6 +107,7 @@ class StateSpaceModel:
         self.draw_sample(10 * DEFAULT_N_RBF)
         self.kalman_smoothing()
 
+
         return {
             'n_rbf': DEFAULT_N_RBF,
             'centers': random.sample(self.smoothed_state_means, DEFAULT_N_RBF),#TODO : replace random selection by k-means
@@ -163,13 +164,9 @@ class StateSpaceModel:
 
         return g
 
-    def compute_f_derivative(self, x, u=None):
+    def compute_f_derivative(self, x):  # derivative of f ne depend pas de (u_t)_1..T
         if x.size != self.state_dim:
             raise ValueError('x vector must have state dimension')
-        elif u is None:
-            u = np.zeros(self.input_dim)
-        elif u.size != self.input_dim:
-            raise ValueError('u vector must have state dimension')
 
         df = self.A
 
@@ -182,13 +179,9 @@ class StateSpaceModel:
 
         return df
 
-    def compute_g_derivative(self, x, u=None):
+    def compute_g_derivative(self, x):   # derivative of g ne depend pas de (u_t)_1..T
         if x.size != self.state_dim:
             raise ValueError('x vector must have state dimension')
-        elif u is None:
-            u = np.zeros(self.input_dim)
-        elif u.size != self.input_dim:
-            raise ValueError('u vector must have state dimension')
 
         dg = self.C
 
@@ -237,24 +230,25 @@ class StateSpaceModel:
 
         self.filtered_state_means = []
         self.filtered_state_covariance = []
+        self.filtered_state_correlation = [] # stock P_{t,t+1 | t} : correlation between states /!\ length = T-1
 
         for i in range(0, t):
             y = self.output_sequence[i]
             u = self.input_sequence[i]
-            # pour le extended kalman filter, on change les valeure de A, b, C, d a chaque étape
+            # pour le extended kalman filter, on change les valeurs de A, b, C, d a chaque étape
             if is_extended:
                 # point de linearisation
                 if i==0:
-                    x_tilde = np.zeros(self.state_dim)
+                    x_tilde = np.zeros(self.state_dim)  # variable inutilisée après, plutôt un if(i!=0) ?
                 else:
                     x_tilde = self.filtered_state_means[i-1][1]
 
                     if not self.is_f_linear:
-                        A = self.A + self.compute_f_derivative(x_tilde, self.input_sequence[i-1])
+                        A = self.A + self.compute_f_derivative(x_tilde)
                         AT = np.transpose(A)
                         b = self.b + self.compute_f(x_tilde, self.input_sequence[i-1])
                     if not self.is_g_linear:
-                        C = self.C + self.compute_g_derivative(x_tilde, self.input_sequence[i])
+                        C = self.C + self.compute_g_derivative(x_tilde)
                         CT = np.transpose(C)
                         d = self.d + self.compute_g(x_tilde, self.input_sequence[i])
 
@@ -265,6 +259,8 @@ class StateSpaceModel:
             else:
                 x_1_0 = A.dot(self.filtered_state_means[i-1][1]) + B.dot(self.input_sequence[i-1]) + b
                 P_1_0 = A.dot(self.filtered_state_covariance[i-1][1]).dot(AT) + Q
+                P_t_comma_t_plus_1_t = self.filtered_state_covariance[i-1][1].dot(AT)  # voir notation pdf section KF
+                self.filtered_state_correlation.append(P_t_comma_t_plus_1_t)
 
             # kalman gain matrix
             K = P_1_0.dot(CT).dot(inv(C.dot(P_1_0).dot(CT) + R))
@@ -273,6 +269,8 @@ class StateSpaceModel:
 
             self.filtered_state_means.append([x_1_0, x_1_1])
             self.filtered_state_covariance.append([P_1_0, P_1_1])
+
+
 
     def kalman_smoothing(self, is_extended=False, output_sequence=None):
         """
@@ -287,21 +285,19 @@ class StateSpaceModel:
 
         self.smoothed_state_means = []
         self.smoothed_state_covariance = []
-
+        self.smoothed_state_correlation = [] # stock P_{t,t+1 | T}  /!\ length = T avec None en dernière position
         AT = np.transpose(self.A)
 
         for i in range(T, 0, -1):
             if is_extended:
-                x_dot = self.filtered_state_means[i-1][1] # point de linéarisation
-                if i==1:
-                    A = self.A + self.compute_f_derivative(x_dot) # no input
-                else:
-                    A = self.A + self.compute_f_derivative(x_dot, self.input_sequence[i-1])
+                x_dot = self.filtered_state_means[i-1][1]  # On linéarise autour de la moyenne renvoyé par Kalman Filter
+                A = self.A + self.compute_f_derivative(x_dot)
                 AT = np.transpose(A)
 
-            if i == T:
+            if i == T:  # initialisation en backward
                 x_t_T = self.filtered_state_means[i-1][1]
                 P_t_T = self.filtered_state_covariance[i-1][1]
+                P_t_comma_t_plus_1_T = None # pour pas faire .append(vide) plus tard
             else:
                 P_t_t = self.filtered_state_covariance[i-1][1]
                 P_t_plus_1_t = self.filtered_state_covariance[i][0]
@@ -315,9 +311,13 @@ class StateSpaceModel:
 
                 x_t_T = x_t_t + L.dot(x_t_plus_1_T - x_t_plus_1_t)
                 P_t_T = P_t_t + L.dot(P_t_plus_1_T - P_t_plus_1_t).dot(LT)
+                P_t_comma_t_plus_1_T = self.filtered_state_correlation[i - 1] - (x_t_t - x_t_T).dot(x_t_plus_1_t - x_t_plus_1_T.transpose())
 
             self.smoothed_state_means.insert(0, x_t_T)
             self.smoothed_state_covariance.insert(0, P_t_T)
+            self.smoothed_state_correlation.insert(0, P_t_comma_t_plus_1_T)
+
+
 
     def draw_sample(self, T=1, input_sequence=None):
         if input_sequence is None and (self.input_sequence is None or len(self.input_sequence) < T):
