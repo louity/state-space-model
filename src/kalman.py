@@ -359,3 +359,90 @@ class StateSpaceModel:
 
         self.output_sequence = outputs
         self.state_sequence = states
+
+    def compute_f_optimal_parameters(self):
+        T = len(self.output_sequence)
+        I = self.f_rbf_parameters['n_rbf']
+        p = self.state_dim
+        q = self.input_dim
+
+        xPhiT = np.zeros(p, I+p+q+1)
+        PhiPhiT = np.zeros(I+p+q+1, I+p+q+1)
+
+        for t in range(0,T):
+            for i in range(0,I):
+                PInv = inv(self.smoothed_state_covariance[t])
+                x = self.smoothed_state_means[t]
+                SInv = inv(self.f_rbf_parameters['width'][i])
+                c = self.f_rbf_parameters['center'][i]
+                u = self.input_sequence[t]
+
+                # simple expectations
+                PhiPhiT[I:I+p, I:I+p] = np.matrix(x).T.dot(x) + self.smoothed_state_covariance[t]
+
+                xuT = np.matrix(x).T.dot(u)
+                PhiPhiT[I:I+p, I+p:I+p+q] = xuT
+                PhiPhiT[I+p:I+p+q, I:I+p] = xuT.transpose()
+
+                PhiPhiT[I:I+p, I+p+q] = x
+                PhiPhiT[I+p+q, I:I+p] = x
+
+                PhiPhiT[I+p:I+p+q, I+p:I+p+q] = np.matrix(u).T.dot(u)
+
+                PhiPhiT[I+p:I+p+q, I+p+q] = u
+                PhiPhiT[I+p+q, I+p:I+p+q] = u
+
+                PhiPhiT[I+p+q, I+p+q] = 1
+
+                if (t < T-1):
+                    xPhiT[:,I:I+p] = np.matrix(self.smoothed_state_means[t+1]).T.dot(np.matrix(self.smoothed_state_means[t])) + self.smoothed_state_correlation[t]
+                    xPhiT[:,I+p:I+p+q] = np.matrix(self.smoothed_state_means[t+1]).T.dot(np.matrix(u))
+                    xPhiT[:,I+p+q] = self.smoothed_state_means[t+1]
+
+                # expectations with mu^i_t and beta^i_t
+                Sigma = inv(PInv + SInv)
+                mu = Sigma.dot(PInv.dot(x) + SInv.dot(c))
+                delta = c.transpose().dot(SInv).dot(c) + x.transpose().dot(PInv).dot(x) - mu.transpose().dot(Sigma).dot(mu)
+                beta = power(det(Sigma) * det(SInv) * det(PInv), 0.5) * exp(-0.5 * delta) / power(2 * np.pi, 0.5 * p)
+
+                PhiPhiT[I: I+p, i] += beta * mu
+                PhiPhiT[i, I: I+p] += beta * mu
+
+                PhiPhiT[I+p: I+p+q, i] += beta * u
+                PhiPhiT[i, I+p: I+p+q] += beta * u
+
+                PhiPhiT[I+p+q, i] += beta
+                PhiPhiT[i, I+p+q] += beta
+
+                # expectations with mu^{i,j}_t and beta^{i,j}_t
+                for j in range(i,T):
+                    SjInv = inv(self.f_rbf_parameters['width'][j])
+                    cj = self.f_rbf_parameters['center'][j]
+
+                    Sigma = inv(PInv + SInv + SjInv)
+                    mu = Sigma.dot(PInv.dot(x) + SInv.dot(c) + SjInv.dot(cj))
+                    delta = c.transpose().dot(SInv).dot(c) + cj.transpose().dot(SjInv).dot(c) + x.transpose().dot(PInv).dot(x) - mu.transpose().dot(Sigma).dot(mu)
+                    beta = power(det(Sigma) * det(SInv) * det(SjInv) * det(PInv), 0.5) * exp(-0.5 * delta) / power(2 * np.pi, p)
+
+                    PhiPhiT[i, j] += beta
+                    PhiPhiT[j, i] += beta
+
+                # expectations with mu^i_{t,t+1} and beta^i_{t,t+1}
+                if (t < T-1):
+                    Pinv = inv(np.bmat(
+                        [self.smoothed_state_covariance[t], self.smoothed_state_correlation[t]],
+                        [self.smoothed_state_correlation[t], self.smoothed_state_covariance[t+1]]
+                    ))
+                    x = np.concatenate((self.smoothed_state_means[t], self.smoothed_state_means[t+1]))
+
+                    Sigma = inv(PInv + np.bmat([[SInv, np.zeros(p,p)], [np.zeros(p,p), np.zeros(p,p)]]))
+                    mu = Sigma.dot(PInv.dot(x) + np.concatenate((SInv.dot(c), np.zeros(p))))
+                    delta = c.transpose().dot(SInv).dot(c) + x.transpose().dot(PInv).dot(x) - mu.transpose().dot(Sigma).dot(mu)
+                    beta = power(det(Sigma) * det(SInv) * det(PInv), 0.5) * exp(-0.5 * delta) / power(2 * np.pi, 0.5 * p)
+
+                    xPhiT[:, i] +=  beta * mu[p:2*p]
+
+        theta_f = xPhiT.dot(inv(PhiPhiT))
+
+        return theta_f
+
