@@ -79,5 +79,21 @@ class TestStateSpaceModel(unittest.TestCase):
                         self.assertEqual(xSmooth.size, ssm.state_dim, 'mean vector must have state_dim dimension')
                         self.assertEqual(PSmooth.shape, (ssm.state_dim, ssm.state_dim), 'cov matrix must have state_dim dimension')
 
+
+    def test_parameter_learning(self):
+        """
+            teste la méthode compute_f_optimal_parametes
+        """
+        for i, (is_f_linear, is_g_linear) in enumerate(zip([True, False, True, False], [True, True, False, False])):
+            # tester différentes dimensions pour les espaces
+            for j, (state_dim, output_dim) in enumerate(zip([1], [1])):
+                # tester différentes tailles
+                for k, n_sample in enumerate([10]):
+                    ssm = StateSpaceModel(is_f_linear=is_f_linear, is_g_linear=is_g_linear, state_dim=state_dim, output_dim=output_dim)
+                    ssm.draw_sample(T=n_sample)
+                    is_extended = not is_f_linear or not is_g_linear
+                    ssm.kalman_smoothing(is_extended=is_extended)
+                    ssm.compute_f_optimal_parameters()
+
 # lance les tests
 unittest.main()

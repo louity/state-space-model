@@ -362,12 +362,12 @@ class StateSpaceModel:
 
     def compute_f_optimal_parameters(self):
         T = len(self.output_sequence)
-        I = self.f_rbf_parameters['n_rbf']
+        I = self.f_rbf_parameters['n_rbf'] if (not self.is_f_linear) else 0
         p = self.state_dim
         q = self.input_dim
 
-        xPhiT = np.zeros(p, I+p+q+1)
-        PhiPhiT = np.zeros(I+p+q+1, I+p+q+1)
+        xPhiT = np.zeros((p, I+p+q+1))
+        PhiPhiT = np.zeros((I+p+q+1, I+p+q+1))
 
         for t in range(0,T):
             PInv = inv(self.smoothed_state_covariance[t])
@@ -446,6 +446,8 @@ class StateSpaceModel:
                     beta = power(det(Sigma) * det(SInv) * det(PInv), 0.5) * exp(-0.5 * delta) / power(2 * np.pi, 0.5 * p)
 
                     xPhiT[:, i] +=  beta * mu[p:2*p]
+        print 'xPhiT ',xPhiT
+        print 'PhiPhiT ', PhiPhiT
 
         theta_f = xPhiT.dot(inv(PhiPhiT))
 
