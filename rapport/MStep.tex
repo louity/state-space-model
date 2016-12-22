@@ -140,21 +140,21 @@ which yields:
 Now the keypoint is to compute these expectations.
 To compute $\theta_f^{(k)}$ and $Q^{(k)}$, we need to compute the expectations:
 \begin{align*}
-  \left< (x,x') \mapsto x' \Phi_f(x,u_t)^{\top} \right>_{t,t+1} &=
-    \left< (x,x') \mapsto [x'\rho_1(x), \ldots , x'\rho_I(x), x'x^{\top}, x'u^{\top}, x']\right>_{t,t+1}
+  \left< (x,x') \mapsto x' \Phi_f(x,u_t_t)^{\top} \right>_{t,t+1} &=
+    \left< (x,x') \mapsto [x'\rho_1(x), \ldots , x'\rho_I(x), x'x^{\top}, x'u_t^{\top}, x']\right>_{t,t+1}
   \\
-  \left< (x,x') \mapsto \Phi_f(x, u_t) x'^{\top} \right>_{t,t+1} &=
-    \left< (x,x') \mapsto [x'\rho_1(x), \ldots , x'\rho_I(x), x'x^{\top}, x'u^{\top}, x']^{\top} \right>_{t,t+1}
+  \left< (x,x') \mapsto \Phi_f(x, u_t_t) x'^{\top} \right>_{t,t+1} &=
+    \left< (x,x') \mapsto [x'\rho_1(x), \ldots , x'\rho_I(x), x'x^{\top}, x'u_t^{\top}, x']^{\top} \right>_{t,t+1}
   \\
-  \left< x \mapsto \Phi_f(x, u_t)\Phi_f(x,u_t)^{\top} \right>_{t} &=
+  \left< x \mapsto \Phi_f(x, u_t_t)\Phi_f(x,u_t_t)^{\top} \right>_{t} &=
     \left< x \mapsto \left[
       \begin{array}{cccccc}
-        \rho_1(x)\rho_1(x) & \ldots & \rho_1(x)\rho_I(x) & \rho_1(x)x^{\top} & \rho_1(x)u^{\top} & \rho_1(x) \\
+        \rho_1(x)\rho_1(x) & \ldots & \rho_1(x)\rho_I(x) & \rho_1(x)x^{\top} & \rho_1(x)u_t^{\top} & \rho_1(x) \\
         \ldots & \ldots & \ldots & \ldots & \ldots & \ldots\\
-        \rho_I(x)\rho_1(x) & \ldots & \rho_I(x)\rho_I(x) & \rho_I(x)x^{\top} & \rho_I(x)u^{\top} & \rho_I(x) \\
-        \rho_I(x)x & \ldots & \rho_I(x)x & xx^{\top} & xu^{\top} & x \\
-        \rho_I(x)u & \ldots & \rho_I(x)u & xu^{\top} & uu^{\top} & u \\
-        \rho_I(x) & \ldots & \rho_I(x) & x^{\top} & u^{\top} & 1 \\
+        \rho_I(x)\rho_1(x) & \ldots & \rho_I(x)\rho_I(x) & \rho_I(x)x^{\top} & \rho_I(x)u_t^{\top} & \rho_I(x) \\
+        \rho_1(x)x & \ldots & \rho_I(x)x & xx^{\top} & xu_t^{\top} & x \\
+        \rho_1(x)u_t & \ldots & \rho_I(x)u_t & u_t x^{\top} & u_tu_t^{\top} & u_t \\
+        \rho_1(x) & \ldots & \rho_I(x) & x^{\top} & u_t^{\top} & 1 \\
       \end{array}
     \right]
   \right>_{t}
@@ -222,18 +222,23 @@ Finally, when we multiply the RBF function $\rho_i$ and $q_{t,t+1}$, we obtain a
       \right]
     \right)^{-1}
   \\
-  \mu^i_{t,t+1} &= \Sigma^i_{t,t+1}
-    \left(
-      \left[
-        \begin{array}{cc} \hat{P}_{t \given T} & \hat{P}_{t,t+1 \given T}\\ \hat{P}_{t,t+1 \given T} & \hat{P}_{t+1 \given T} \end{array}
-      \right]^{-1}
-      \left[
-        \begin{array}{c} \hat{x}_{t \given T} \\ \hat{x}_{t+1 \given T} \end{array}
-      \right] +
-      \left[
-        \begin{array}{c} S_i^{-1}c_i \\ 0 \end{array}
-      \right]
-    \right)
+  \mu^i_{t,t+1} =
+    \left[
+      \begin{array}{c} m^i_{t,t+1} \\ n^i_{t,t+1} \end{array}
+    \right]
+    &=
+    \Sigma^i_{t,t+1}
+      \left(
+        \left[
+          \begin{array}{cc} \hat{P}_{t \given T} & \hat{P}_{t,t+1 \given T}\\ \hat{P}_{t,t+1 \given T} & \hat{P}_{t+1 \given T} \end{array}
+        \right]^{-1}
+        \left[
+          \begin{array}{c} \hat{x}_{t \given T} \\ \hat{x}_{t+1 \given T} \end{array}
+        \right] +
+        \left[
+          \begin{array}{c} S_i^{-1}c_i \\ 0 \end{array}
+        \right]
+      \right)
   \\
 \end{align*}
 multiplied by a constant $\beta^{i}_{t,t+1}$ :
@@ -243,7 +248,7 @@ multiplied by a constant $\beta^{i}_{t,t+1}$ :
 \end{align*}
 Thus the last expectation is :
 \begin{align*}
-  \left< (x,x') \mapsto \rho_i(x) x' \right>_{x_{t}, x_{t+1}} &= \beta^i_{t,t+1}\\
+  \left< (x,x') \mapsto \rho_i(x) x' \right>_{t,t+1} &= \beta^i_{t,t+1}n^i_{t,t+1}\\
 \end{align*}
 
 The interest of the RBF functions is that the expectations can be computed analytically and efficiently.
