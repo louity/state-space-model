@@ -61,8 +61,8 @@ class StateSpaceModel:
         else:
             self.state_dim = state_dim
         if input_dim is None:
-            print 'No input space dimension given, default set to 1'
-            self.input_dim = 1
+            print 'No input space dimension given, default set to 0'
+            self.input_dim = 0
         else:
             self.input_dim = input_dim
         if output_dim is None:
@@ -76,10 +76,10 @@ class StateSpaceModel:
 
         self.Sigma_0 = check_matrix(Sigma_0, (self.state_dim, self.state_dim), 'matrix Sigma_0 shape must be equal to self.state_dim')
         self.A = check_matrix(A, (self.state_dim, self.state_dim), 'matrix A shape must equal to state_dim x state_dim')
-        self.B = check_matrix(B, (self.state_dim, self.input_dim), 'matrix B shape must equal to state_dim x input_dim')
+        self.B = check_matrix(B, (self.state_dim, self.input_dim), 'matrix B shape must equal to state_dim x input_dim') if (self.input_dim > 0) else None
         self.Q = check_matrix(Q, (self.state_dim, self.state_dim), 'matrix Q shape must equal to state_dim x state_dim')
         self.C = check_matrix(C, (self.output_dim, self.state_dim), 'matrix C shape must equal to output_dim x state_dim')
-        self.D = check_matrix(D, (self.output_dim, self.input_dim), 'matrix D shape must equal to output_dim x input_dim')
+        self.D = check_matrix(D, (self.output_dim, self.input_dim), 'matrix D shape must equal to output_dim x input_dim') if (self.input_dim > 0) else None
         self.R = check_matrix(R, (self.output_dim, self.output_dim), 'matrix R shape must equal to self.output_dim')
 
         self.f_rbf_parameters = f_rbf_parameters
@@ -92,7 +92,7 @@ class StateSpaceModel:
         self.input_sequence = None
 
         if not self.is_f_linear and self.f_rbf_parameters is None:
-            print 'No rbf parameters provided for f, initialize them with linear Kalman Smoothing'
+            print 'No rbf parameters provided for f, initialize them'
             self.initialize_f_rbf_parameters()
         if not self.is_f_linear and self.f_rbf_coeffs is None:
             self.f_rbf_coeffs = [np.ones(self.state_dim) for _ in range(0, self.f_rbf_parameters['n_rbf'])]
@@ -104,9 +104,18 @@ class StateSpaceModel:
             self.g_rbf_coeffs = [np.ones(self.output_dim) for _ in range(0, self.g_rbf_parameters['n_rbf'])]
 
     def get_rbf_parameters_for_state(self):
+        is_f_linear = self.is_f_linear
+        is_g_linear = self.is_g_linear
+
+        # make f and g linear
+        self.is_f_linear = True
+        self.is_g_linear = True
+
         self.draw_sample(10 * DEFAULT_N_RBF)
         self.kalman_smoothing()
 
+        self.is_f_linear = is_f_linear
+        self.is_g_linear = is_g_linear
 
         return {
             'n_rbf': DEFAULT_N_RBF,
@@ -134,7 +143,7 @@ class StateSpaceModel:
         elif u.size != self.input_dim:
             raise ValueError('u vector must have state dimension')
 
-        f = self.A.dot(x) + self.B.dot(u)
+        f = self.A.dot(x) + self.B.dot(u) if (self.input_dim > 0) else self.A.dot(x)
 
         if not self.is_f_linear:
             for i in range(0, self.f_rbf_parameters['n_rbf']):
@@ -153,7 +162,7 @@ class StateSpaceModel:
         elif u.size != self.input_dim:
             raise ValueError('u vector must have state dimension')
 
-        g = self.C.dot(x) + self.D.dot(u)
+        g = self.C.dot(x) + self.D.dot(u) if (self.input_dim > 0) else self.C.dot(x)
 
         if not self.is_g_linear:
             for i in range(0, self.g_rbf_parameters['n_rbf']):
@@ -164,7 +173,7 @@ class StateSpaceModel:
 
         return g
 
-    def compute_f_derivative(self, x):  # derivative of f ne depend pas de (u_t)_1..T
+    def compute_df_dx(self, x):  # derivative of f ne depend pas de (u_t)_1..T
         if x.size != self.state_dim:
             raise ValueError('x vector must have state dimension')
 
@@ -179,7 +188,7 @@ class StateSpaceModel:
 
         return df
 
-    def compute_g_derivative(self, x):   # derivative of g ne depend pas de (u_t)_1..T
+    def compute_dg_dx(self, x):   # derivative of g ne depend pas de (u_t)_1..T
         if x.size != self.state_dim:
             raise ValueError('x vector must have state dimension')
 
@@ -212,7 +221,7 @@ class StateSpaceModel:
 
         t = len(self.output_sequence)
 
-        if input_sequence is None and self.input_sequence is None:
+        if (self.input_dim > 0) and (input_sequence is None) and (self.input_sequence is None):
             print 'WARNING: no input sequence, setting it to zero'
             self.input_sequence = [np.zeros(self.input_dim) for _ in range(0, t)]
 
@@ -234,37 +243,42 @@ class StateSpaceModel:
 
         for i in range(0, t):
             y = self.output_sequence[i]
-            u = self.input_sequence[i]
+            u = self.input_sequence[i] if (self.input_dim > 0) else None
             # pour le extended kalman filter, on change les valeurs de A, b, C, d a chaque étape
             if is_extended:
                 # point de linearisation
+                u_g = u
                 if i==0:
                     x_tilde = np.zeros(self.state_dim)  # variable inutilisée après, plutôt un if(i!=0) ?
+                    u_f = None
                 else:
                     x_tilde = self.filtered_state_means[i-1][1]
+                    u_f = self.input_sequence[i-1] if (self.input_dim > 0) else None
 
-                    if not self.is_f_linear:
-                        A = self.A + self.compute_f_derivative(x_tilde)
-                        AT = np.transpose(A)
-                        b = self.b + self.compute_f(x_tilde, self.input_sequence[i-1])
-                    if not self.is_g_linear:
-                        C = self.C + self.compute_g_derivative(x_tilde)
-                        CT = np.transpose(C)
-                        d = self.d + self.compute_g(x_tilde, self.input_sequence[i])
+                if not self.is_f_linear:
+                    A = self.A + self.compute_df_dx(x_tilde)
+                    AT = np.transpose(A)
+                    b = self.b + self.compute_f(x_tilde, u_f)
+                if not self.is_g_linear:
+                    C = self.C + self.compute_dg_dx(x_tilde)
+                    CT = np.transpose(C)
+                    d = self.d + self.compute_g(x_tilde, u_g)
 
             if i == 0:
                 #initialization
                 x_1_0 = np.zeros(self.state_dim)
                 P_1_0 = self.Sigma_0
             else:
-                x_1_0 = A.dot(self.filtered_state_means[i-1][1]) + B.dot(self.input_sequence[i-1]) + b
+                Bu = B.dot(self.input_sequence[i-1]) if (self.input_dim > 0) else np.zeros(self.state_dim)
+                x_1_0 = A.dot(self.filtered_state_means[i-1][1]) + Bu + b
                 P_1_0 = A.dot(self.filtered_state_covariance[i-1][1]).dot(AT) + Q
                 P_t_comma_t_plus_1_t = self.filtered_state_covariance[i-1][1].dot(AT)  # voir notation pdf section KF
                 self.filtered_state_correlation.append(P_t_comma_t_plus_1_t)
 
+            Du = D.dot(u) if (self.input_dim > 0) else np.zeros(self.output_dim)
             # kalman gain matrix
             K = P_1_0.dot(CT).dot(inv(C.dot(P_1_0).dot(CT) + R))
-            x_1_1 = x_1_0 + K.dot(y - (C.dot(x_1_0) + D.dot(u) + d))
+            x_1_1 = x_1_0 + K.dot(y - (C.dot(x_1_0) + Du + d))
             P_1_1 = P_1_0 - K.dot(C).dot(P_1_0)
 
             self.filtered_state_means.append([x_1_0, x_1_1])
@@ -291,7 +305,7 @@ class StateSpaceModel:
         for i in range(T, 0, -1):
             if is_extended:
                 x_dot = self.filtered_state_means[i-1][1]  # On linéarise autour de la moyenne renvoyé par Kalman Filter
-                A = self.A + self.compute_f_derivative(x_dot)
+                A = self.A + self.compute_df_dx(x_dot)
                 AT = np.transpose(A)
 
             if i == T:  # initialisation en backward
@@ -320,26 +334,26 @@ class StateSpaceModel:
 
 
     def draw_sample(self, T=1, input_sequence=None):
-        if input_sequence is None and (self.input_sequence is None or len(self.input_sequence) < T):
+        if (self.input_dim > 0 )and (input_sequence is None) and (self.input_sequence is None or len(self.input_sequence) < T):
             print 'No input sequence given, setting inputs to zero'
-            self.input_sequence = []
-            for i in range(0,T):
-                self.input_sequence.append(np.zeros(self.input_dim))
+            self.input_sequence = [np.zeros(self.input_dim) for _ in range(0,T)]
 
         states = []
         outputs = []
-        inputs = self.input_sequence
 
-
-        x_1 = mv_norm(np.zeros(self.state_dim), self.Sigma_0)
-        y_1 = mv_norm(self.C.dot(x_1) + self.D.dot(inputs[0]), self.R)
+        x = np.zeros(self.state_dim)
+        x_1 = mv_norm(x, self.Sigma_0)
+        y = self.compute_g(x_1, self.input_sequence[0]) if (self.input_dim > 0) else self.compute_g(x_1)
+        y_1 = mv_norm(y, self.R)
 
         states.append(x_1)
         outputs.append(y_1)
 
         for i in range(1,T):
-            x_i = mv_norm(self.A.dot(states[i-1]) + self.B.dot(inputs[i-1]), self.Q)
-            y_i = mv_norm(self.C.dot(x_i) + self.D.dot(inputs[i]), self.R)
+            x = self.compute_f(states[i-1], self.input_sequence[i-1])  if (self.input_dim > 0) else self.compute_f(states[i-1])
+            x_i = mv_norm(x, self.Q)
+            y = self.compute_g(x_i, self.input_sequence[i])  if (self.input_dim > 0) else self.compute_g(x_i)
+            y_i = mv_norm(y, self.R)
             states.append(x_i)
             outputs.append(y_i)
 

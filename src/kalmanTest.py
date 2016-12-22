@@ -3,7 +3,7 @@
 import unittest
 from kalman import StateSpaceModel
 
-STATE_SPACE_MODEL_MINIMAL_ATTRIBUTES = ['is_f_linear', 'state_dim', 'input_dim', 'output_dim', 'Sigma_0', 'A', 'B', 'Q', 'C', 'D', 'R']
+STATE_SPACE_MODEL_MINIMAL_ATTRIBUTES = ['is_f_linear', 'state_dim', 'input_dim', 'output_dim', 'Sigma_0', 'A', 'Q', 'C', 'R']
 
 class TestStateSpaceModel(unittest.TestCase):
     """
