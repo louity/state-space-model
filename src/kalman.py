@@ -365,6 +365,10 @@ class StateSpaceModel:
         I = self.f_rbf_parameters['n_rbf'] if (not self.is_f_linear) else 0
         p = self.state_dim
         q = self.input_dim
+        n_params = I+p+q+1
+
+        if (n_params > T-1):
+            raise Exception('More paramerers (' + str(n_params) + ') than values (' + str(T-1) +')')
 
         xPhiT = np.zeros((p, I+p+q+1))
         PhiPhiT = np.zeros((I+p+q+1, I+p+q+1))
@@ -402,7 +406,7 @@ class StateSpaceModel:
             # expectations involving RBF
             for i in range(0,I):
                 SInv = inv(self.f_rbf_parameters['width'][i])
-                c = self.f_rbf_parameters['center'][i]
+                c = self.f_rbf_parameters['centers'][i]
 
                 Sigma = inv(PInv + SInv)
                 mu = Sigma.dot(PInv.dot(x) + SInv.dot(c))
@@ -420,9 +424,9 @@ class StateSpaceModel:
                 PhiPhiT[i, I+p+q] += beta
 
                 # expectations with mu^{i,j}_t and beta^{i,j}_t
-                for j in range(i,T):
+                for j in range(i,I):
                     SjInv = inv(self.f_rbf_parameters['width'][j])
-                    cj = self.f_rbf_parameters['center'][j]
+                    cj = self.f_rbf_parameters['centers'][j]
 
                     Sigma = inv(PInv + SInv + SjInv)
                     mu = Sigma.dot(PInv.dot(x) + SInv.dot(c) + SjInv.dot(cj))
@@ -434,20 +438,21 @@ class StateSpaceModel:
 
                 # expectations with mu^i_{t,t+1} and beta^i_{t,t+1}
                 if (t < T-1):
-                    Pinv = inv(np.bmat(
-                        [self.smoothed_state_covariance[t], self.smoothed_state_correlation[t]],
-                        [self.smoothed_state_correlation[t], self.smoothed_state_covariance[t+1]]
-                    ))
-                    x = np.concatenate((self.smoothed_state_means[t], self.smoothed_state_means[t+1]))
+                    P2Inv = np.zeros((2*p, 2*p))
+                    P2Inv[0:p,0:p] = self.smoothed_state_covariance[t]
+                    P2Inv[p:2*p,p:2*p] = self.smoothed_state_covariance[t+1]
+                    P2Inv[0:p,p:2*p] = self.smoothed_state_correlation[t]
+                    P2Inv[p:2*p,0:p] = self.smoothed_state_correlation[t]
+                    S2Inv = np.zeros((2*p, 2*p))
+                    S2Inv[0:p,0:p] = SInv
 
-                    Sigma = inv(PInv + np.bmat([[SInv, np.zeros(p,p)], [np.zeros(p,p), np.zeros(p,p)]]))
-                    mu = Sigma.dot(PInv.dot(x) + np.concatenate((SInv.dot(c), np.zeros(p))))
+                    x2 = np.concatenate((self.smoothed_state_means[t], self.smoothed_state_means[t+1]))
+                    Sigma = inv(P2Inv + S2Inv)
+                    mu = Sigma.dot(P2Inv.dot(x2) + np.concatenate((SInv.dot(c), np.zeros(p))))
                     delta = c.transpose().dot(SInv).dot(c) + x.transpose().dot(PInv).dot(x) - mu.transpose().dot(Sigma).dot(mu)
-                    beta = power(det(Sigma) * det(SInv) * det(PInv), 0.5) * exp(-0.5 * delta) / power(2 * np.pi, 0.5 * p)
+                    beta = np.sqrt(det(Sigma) * det(SInv) * det(PInv) / power(2 * np.pi, p)) * exp(-0.5 * delta)
 
                     xPhiT[:, i] +=  beta * mu[p:2*p]
-        print 'xPhiT ',xPhiT
-        print 'PhiPhiT ', PhiPhiT
 
         theta_f = xPhiT.dot(inv(PhiPhiT))
 
