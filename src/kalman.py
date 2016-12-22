@@ -311,7 +311,7 @@ class StateSpaceModel:
 
                 x_t_T = x_t_t + L.dot(x_t_plus_1_T - x_t_plus_1_t)
                 P_t_T = P_t_t + L.dot(P_t_plus_1_T - P_t_plus_1_t).dot(LT)
-                P_t_comma_t_plus_1_T = self.filtered_state_correlation[i - 1] - (x_t_t - x_t_T).dot(x_t_plus_1_t - x_t_plus_1_T.transpose())
+                P_t_comma_t_plus_1_T = self.filtered_state_correlation[i-1] - (x_t_t - x_t_T).dot(x_t_plus_1_t - x_t_plus_1_T.transpose())
 
             self.smoothed_state_means.insert(0, x_t_T)
             self.smoothed_state_covariance.insert(0, P_t_T)
