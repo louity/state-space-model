@@ -9,10 +9,10 @@ So our dynamical system is prametrized by $\theta = \left(\theta_f, \theta_g, Q,
 The complication is that both the parameter $\theta$ and the state sequence $(x_t)_{t=1 \cdots T}$ are unknown.
 In such case where both states and parameters are unknown, a typical approach is to use an iterative Expectations Maximization (EM) algorithm:
 \begin{itemize}
-  \item we begin with inital values for the parameter $\theta^{(0)} = \left( \theta_f^{(0)}, \theta_g^{(0)}), Q^{(0)}, R^{(0)} \right)$.
+  \item we begin with inital values for the parameter $\theta^{(0)} = \left( \theta_f^{(0)}, \theta_g^{(0)}, Q^{(0)}, R^{(0)} \right)$.
 \item For $k=1 \ldots K$, we itertate E-step and M-step:
   \begin{itemize}
-    \item In the \textbf{E-step}, the states $(x_t)_{t=1 \cdots T}$ are inferred (or estimated) knowing the parameter $\theta^{(k-1)} = \left( \theta_f^{(k-1)}, \theta_g^{(k-1)}), Q^{(k-1)}, R^{(k-1)} \right)$ computed in the previous M-Step.
-    \item In the \textbf{M-step}, the updated parameter $\theta^{(k)} = \left( \theta_f^{(k)}, \theta_g^{(k)}), Q^{(k)}, R^{(k)} \right)$ is computed thanks to the states $(x_t)_{t=1 \cdots T}$ inferred (or estimated) in the E-Step.
+    \item In the \textbf{E-step}, the states $(x_t)_{t=1 \cdots T}$ are inferred (or estimated) knowing the parameter $\theta^{(k-1)} = \left( \theta_f^{(k-1)}, \theta_g^{(k-1)}, Q^{(k-1)}, R^{(k-1)} \right)$ computed in the previous M-Step.
+    \item In the \textbf{M-step}, the updated parameter $\theta^{(k)} = \left( \theta_f^{(k)}, \theta_g^{(k)}, Q^{(k)}, R^{(k)} \right)$ is computed thanks to the states $(x_t)_{t=1 \cdots T}$ inferred (or estimated) in the E-Step.
   \end{itemize}
 \end{itemize}

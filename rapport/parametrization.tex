@@ -8,9 +8,9 @@ The authors propose the following parametrizations for $f$ and $g$ :
   f(x,u) &= \sum_{i=1}^I \rho_i(x) h_i + Ax + Bu + b\\
   g(x,u) &= \sum_{j=1}^J \rho'_j(x) k_j + Cx + Du + d\\
   \rho_i(x) \colon \mathbb{R}^p &\to \mathbb{R}\\
-  x &\mapsto \frac{1}{(2\pi)^{d/2}|S_i|^{1/2}} exp\left(-\frac{1}{2}(x-c_i)^T S_{i}^{-1}(x-c_i)\right)\\
+  x &\mapsto \frac{1}{(2\pi)^{d/2}|S_i|^{1/2}} \exp \left(-\frac{1}{2}(x-c_i)^T S_{i}^{-1}(x-c_i)\right)\\
   \rho'_j(x) \colon \mathbb{R}^p &\to \mathbb{R}\\
-  x &\mapsto \frac{1}{(2\pi)^{d/2}|S'_j|^{1/2}} exp\left(-\frac{1}{2}(x-c'_j)^T {S'_{j}}^{-1}(x-c'_j)\right)\\
+  x &\mapsto \frac{1}{(2\pi)^{d/2}|S'_j|^{1/2}} \exp \left(-\frac{1}{2}(x-c'_j)^T {S'_{j}}^{-1}(x-c'_j)\right)\\
   A \in \mathbb{R}^{p \times p}, & \  B \in \mathbb{R}^{p \times q}, \  C \in \mathbb{R}^{n \times p}, \  D \in \mathbb{R}^{n \times q}\\
   h_i \in \mathbb{R}^{p},& \  b \in \mathbb{R}^p, \  k_j \in \mathbb{R}^{n},\   d \in \mathbb{R}^n\\
 \end{align*}
