@@ -32,15 +32,15 @@ def rbf(rbf_value, rbf_center, rbf_width_inv, x):
     dim = rbf_center.size
     K = 1.0 * det(rbf_width_inv) / power(2 * np.pi, dim / 2)
     v = (x - rbf_center)
-    rbf_term = exp(-0.5 * v.transpose().dot(rbf_width_inv).dot(v))
+    rbf_term = exp(-0.5 * v.dot(rbf_width_inv).dot(v))
 
     return K * rbf_value * rbf_term
 
 def rbf_derivative(rbf_value, rbf_center, rbf_width_inv, x):
-    v = np.matrix(x - rbf_center)
-    rbf_vector = np.matrix(rbf(rbf_value, rbf_center, rbf_width_inv, x))
+    rbf_vector = rbf(rbf_value, rbf_center, rbf_width_inv, x)[:, np.newaxis]
+    v = (x - rbf_center)[np.newaxis, :]
 
-    return rbf_vector.T.dot(v).dot(rbf_width_inv)
+    return rbf_vector.dot(v).dot(rbf_width_inv)
 
 
 class StateSpaceModel:
@@ -325,7 +325,7 @@ class StateSpaceModel:
 
                 x_t_T = x_t_t + L.dot(x_t_plus_1_T - x_t_plus_1_t)
                 P_t_T = P_t_t + L.dot(P_t_plus_1_T - P_t_plus_1_t).dot(LT)
-                P_t_comma_t_plus_1_T = self.filtered_state_correlation[t] - np.matrix((x_t_t - x_t_T)).T.dot(np.matrix(x_t_plus_1_t - x_t_plus_1_T))
+                P_t_comma_t_plus_1_T = self.filtered_state_correlation[t] - (x_t_t - x_t_T)[:, np.newaxis].dot((x_t_plus_1_t - x_t_plus_1_T)[np.newaxis, :])
 
             self.smoothed_state_means.insert(0, x_t_T)
             self.smoothed_state_covariance.insert(0, P_t_T)
@@ -379,14 +379,14 @@ class StateSpaceModel:
             u = self.input_sequence[t] if (q > 0) else None
 
             # expectations involving only x
-            PhiPhiT[I:I+p, I:I+p] = np.matrix(x).T.dot(x) + self.smoothed_state_covariance[t]
+            PhiPhiT[I:I+p, I:I+p] = x[:, np.newaxis].dot(x[np.newaxis, :]) + self.smoothed_state_covariance[t]
 
             if (q > 0):
-                xuT = np.matrix(x).T.dot(u)
+                xuT = x[:, np.newaxis].dot(u[np.newaxis, :])
                 PhiPhiT[I:I+p, I+p:I+p+q] = xuT
                 PhiPhiT[I+p:I+p+q, I:I+p] = xuT.transpose()
 
-                PhiPhiT[I+p:I+p+q, I+p:I+p+q] = np.matrix(u).T.dot(u)
+                PhiPhiT[I+p:I+p+q, I+p:I+p+q] = u[:, np.newaxis].dot(u[np.newaxis, :])
 
                 PhiPhiT[I+p:I+p+q, I+p+q] = u
                 PhiPhiT[I+p+q, I+p:I+p+q] = u
@@ -398,10 +398,10 @@ class StateSpaceModel:
             PhiPhiT[I+p+q, I+p+q] = 1
 
             if (t < T-1):
-                xPhiT[:,I:I+p] = np.matrix(self.smoothed_state_means[t+1]).T.dot(np.matrix(self.smoothed_state_means[t])) + self.smoothed_state_correlation[t]
+                xPhiT[:,I:I+p] = self.smoothed_state_means[t+1][:, np.newaxis].dot(self.smoothed_state_means[t][np.newaxis, :]) + self.smoothed_state_correlation[t]
                 xPhiT[:,I+p+q] = self.smoothed_state_means[t+1]
                 if (q > 0):
-                    xPhiT[:,I+p:I+p+q] = np.matrix(self.smoothed_state_means[t+1]).T.dot(np.matrix(u))
+                    xPhiT[:,I+p:I+p+q] = self.smoothed_state_means[t+1][:, np.newaxis].dot(u[np.newaxis, :])
 
             # expectations involving RBF
             for i in range(0,I):
@@ -410,7 +410,7 @@ class StateSpaceModel:
 
                 Sigma = inv(PInv + SInv)
                 mu = Sigma.dot(PInv.dot(x) + SInv.dot(c))
-                delta = c.transpose().dot(SInv).dot(c) + x.transpose().dot(PInv).dot(x) - mu.transpose().dot(Sigma).dot(mu)
+                delta = c.dot(SInv).dot(c) + x.dot(PInv).dot(x) - mu.dot(Sigma).dot(mu)
                 beta = power(det(Sigma) * det(SInv) * det(PInv), 0.5) * exp(-0.5 * delta) / power(2 * np.pi, 0.5 * p)
 
                 PhiPhiT[I: I+p, i] += beta * mu
@@ -430,7 +430,7 @@ class StateSpaceModel:
 
                     Sigma = inv(PInv + SInv + SjInv)
                     mu = Sigma.dot(PInv.dot(x) + SInv.dot(c) + SjInv.dot(cj))
-                    delta = c.transpose().dot(SInv).dot(c) + cj.transpose().dot(SjInv).dot(c) + x.transpose().dot(PInv).dot(x) - mu.transpose().dot(Sigma).dot(mu)
+                    delta = c.dot(SInv).dot(c) + cj.dot(SjInv).dot(c) + x.dot(PInv).dot(x) - mu.dot(Sigma).dot(mu)
                     beta = power(det(Sigma) * det(SInv) * det(SjInv) * det(PInv), 0.5) * exp(-0.5 * delta) / power(2 * np.pi, p)
 
                     PhiPhiT[i, j] += beta
@@ -449,7 +449,7 @@ class StateSpaceModel:
                     x2 = np.concatenate((self.smoothed_state_means[t], self.smoothed_state_means[t+1]))
                     Sigma = inv(P2Inv + S2Inv)
                     mu = Sigma.dot(P2Inv.dot(x2) + np.concatenate((SInv.dot(c), np.zeros(p))))
-                    delta = c.transpose().dot(SInv).dot(c) + x.transpose().dot(PInv).dot(x) - mu.transpose().dot(Sigma).dot(mu)
+                    delta = c.dot(SInv).dot(c) + x.dot(PInv).dot(x) - mu.dot(Sigma).dot(mu)
                     beta = np.sqrt(det(Sigma) * det(SInv) * det(PInv) / power(2 * np.pi, p)) * exp(-0.5 * delta)
 
                     xPhiT[:, i] +=  beta * mu[p:2*p]
