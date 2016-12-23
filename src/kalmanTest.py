@@ -1,7 +1,11 @@
 # coding: utf8
 
 import unittest
+import numpy as np
 from kalman import StateSpaceModel
+
+def is_pos_def(M):
+    return np.all(np.linalg.eigvals(M) > 0)
 
 STATE_SPACE_MODEL_MINIMAL_ATTRIBUTES = ['is_f_linear', 'state_dim', 'input_dim', 'output_dim', 'Sigma_0', 'A', 'Q', 'C', 'R']
 
@@ -75,9 +79,13 @@ class TestStateSpaceModel(unittest.TestCase):
                         self.assertEqual(xFilter1.size, ssm.state_dim, 'mean vector must have state_dim dimension')
                         self.assertEqual(PFilter0.shape, (ssm.state_dim, ssm.state_dim), 'cov matrix must have state_dim dimension')
                         self.assertEqual(PFilter1.shape, (ssm.state_dim, ssm.state_dim), 'cov matrix must have state_dim dimension')
+                        # check that matrices are definite positive
+                        self.assertTrue(is_pos_def(PFilter0))
+                        self.assertTrue(is_pos_def(PFilter1))
 
                         self.assertEqual(xSmooth.size, ssm.state_dim, 'mean vector must have state_dim dimension')
                         self.assertEqual(PSmooth.shape, (ssm.state_dim, ssm.state_dim), 'cov matrix must have state_dim dimension')
+                        self.assertTrue(is_pos_def(PSmooth))
 
 
     def test_parameter_learning(self):
