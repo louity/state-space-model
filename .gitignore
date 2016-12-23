@@ -8,3 +8,4 @@ rapport/*.aux
 rapport/*.pdf
 *.bbl
 *.blg
+rapport/*.synctex
