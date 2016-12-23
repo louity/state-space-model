@@ -219,11 +219,11 @@ class StateSpaceModel:
         elif output_sequence is not None:
             self.output_sequence = output_sequence
 
-        t = len(self.output_sequence)
+        T = len(self.output_sequence)
 
         if (self.input_dim > 0) and (input_sequence is None) and (self.input_sequence is None):
             print 'WARNING: no input sequence, setting it to zero'
-            self.input_sequence = [np.zeros(self.input_dim) for _ in range(0, t)]
+            self.input_sequence = [np.zeros(self.input_dim) for _ in range(0, T)]
 
         # simplify notations
         R = self.R
@@ -241,19 +241,19 @@ class StateSpaceModel:
         self.filtered_state_covariance = []
         self.filtered_state_correlation = [] # stock P_{t,t+1 | t} : correlation between states /!\ length = T-1
 
-        for i in range(0, t):
-            y = self.output_sequence[i]
-            u = self.input_sequence[i] if (self.input_dim > 0) else None
+        for t in range(0, T):
+            y = self.output_sequence[t]
+            u = self.input_sequence[t] if (self.input_dim > 0) else None
             # pour le extended kalman filter, on change les valeurs de A, b, C, d a chaque étape
             if is_extended:
-                # point de linearisation
+                # calcul des points de linéarisation x_tilde, u_f et u_g
                 u_g = u
-                if i==0:
-                    x_tilde = np.zeros(self.state_dim)  # variable inutilisée après, plutôt un if(i!=0) ?
+                if t == 0:
+                    x_tilde = np.zeros(self.state_dim)
                     u_f = None
                 else:
-                    x_tilde = self.filtered_state_means[i-1][1]
-                    u_f = self.input_sequence[i-1] if (self.input_dim > 0) else None
+                    x_tilde = self.filtered_state_means[t-1][1]
+                    u_f = self.input_sequence[t-1] if (self.input_dim > 0) else None
 
                 if not self.is_f_linear:
                     A = self.A + self.compute_df_dx(x_tilde)
@@ -264,15 +264,15 @@ class StateSpaceModel:
                     CT = np.transpose(C)
                     d = self.d + self.compute_g(x_tilde, u_g)
 
-            if i == 0:
+            if t == 0:
                 #initialization
                 x_1_0 = np.zeros(self.state_dim)
                 P_1_0 = self.Sigma_0
             else:
-                Bu = B.dot(self.input_sequence[i-1]) if (self.input_dim > 0) else np.zeros(self.state_dim)
-                x_1_0 = A.dot(self.filtered_state_means[i-1][1]) + Bu + b
-                P_1_0 = A.dot(self.filtered_state_covariance[i-1][1]).dot(AT) + Q
-                P_t_comma_t_plus_1_t = self.filtered_state_covariance[i-1][1].dot(AT)  # voir notation pdf section KF
+                Bu = B.dot(self.input_sequence[t-1]) if (self.input_dim > 0) else np.zeros(self.state_dim)
+                x_1_0 = A.dot(self.filtered_state_means[t-1][1]) + Bu + b
+                P_1_0 = A.dot(self.filtered_state_covariance[t-1][1]).dot(AT) + Q
+                P_t_comma_t_plus_1_t = self.filtered_state_covariance[t-1][1].dot(AT)  # voir notation pdf section KF
                 self.filtered_state_correlation.append(P_t_comma_t_plus_1_t)
 
             Du = D.dot(u) if (self.input_dim > 0) else np.zeros(self.output_dim)
@@ -302,22 +302,22 @@ class StateSpaceModel:
         self.smoothed_state_correlation = [] # stock P_{t,t+1 | T}  /!\ length = T avec None en dernière position
         AT = np.transpose(self.A)
 
-        for i in range(T, 0, -1):
+        for t in range(T-1, -1, -1):
             if is_extended:
-                x_dot = self.filtered_state_means[i-1][1]  # On linéarise autour de la moyenne renvoyé par Kalman Filter
+                x_dot = self.filtered_state_means[t][1]  # On linéarise autour de la moyenne renvoyé par Kalman Filter
                 A = self.A + self.compute_df_dx(x_dot)
                 AT = np.transpose(A)
 
-            if i == T:  # initialisation en backward
-                x_t_T = self.filtered_state_means[i-1][1]
-                P_t_T = self.filtered_state_covariance[i-1][1]
+            if t == T-1:  # initialisation en backward
+                x_t_T = self.filtered_state_means[t][1]
+                P_t_T = self.filtered_state_covariance[t][1]
                 P_t_comma_t_plus_1_T = None # pour pas faire .append(vide) plus tard
             else:
-                P_t_t = self.filtered_state_covariance[i-1][1]
-                P_t_plus_1_t = self.filtered_state_covariance[i][0]
+                P_t_t = self.filtered_state_covariance[t][1]
+                P_t_plus_1_t = self.filtered_state_covariance[t+1][0]
                 P_t_plus_1_T = self.smoothed_state_covariance[0]
-                x_t_t = self.filtered_state_means[i-1][1]
-                x_t_plus_1_t = self.filtered_state_means[i][0]
+                x_t_t = self.filtered_state_means[t][1]
+                x_t_plus_1_t = self.filtered_state_means[t+1][0]
                 x_t_plus_1_T = self.smoothed_state_means[0]
 
                 L = P_t_t.dot(AT).dot(inv(P_t_plus_1_t))
@@ -325,7 +325,7 @@ class StateSpaceModel:
 
                 x_t_T = x_t_t + L.dot(x_t_plus_1_T - x_t_plus_1_t)
                 P_t_T = P_t_t + L.dot(P_t_plus_1_T - P_t_plus_1_t).dot(LT)
-                P_t_comma_t_plus_1_T = self.filtered_state_correlation[i-1] - (x_t_t - x_t_T).dot(x_t_plus_1_t - x_t_plus_1_T.transpose())
+                P_t_comma_t_plus_1_T = self.filtered_state_correlation[t] - np.matrix((x_t_t - x_t_T)).T.dot(np.matrix(x_t_plus_1_t - x_t_plus_1_T))
 
             self.smoothed_state_means.insert(0, x_t_T)
             self.smoothed_state_covariance.insert(0, P_t_T)
@@ -334,7 +334,7 @@ class StateSpaceModel:
 
 
     def draw_sample(self, T=1, input_sequence=None):
-        if (self.input_dim > 0 )and (input_sequence is None) and (self.input_sequence is None or len(self.input_sequence) < T):
+        if (self.input_dim > 0 ) and (input_sequence is None) and (self.input_sequence is None or len(self.input_sequence) < T):
             print 'No input sequence given, setting inputs to zero'
             self.input_sequence = [np.zeros(self.input_dim) for _ in range(0,T)]
 
@@ -349,13 +349,13 @@ class StateSpaceModel:
         states.append(x_1)
         outputs.append(y_1)
 
-        for i in range(1,T):
-            x = self.compute_f(states[i-1], self.input_sequence[i-1])  if (self.input_dim > 0) else self.compute_f(states[i-1])
-            x_i = mv_norm(x, self.Q)
-            y = self.compute_g(x_i, self.input_sequence[i])  if (self.input_dim > 0) else self.compute_g(x_i)
-            y_i = mv_norm(y, self.R)
-            states.append(x_i)
-            outputs.append(y_i)
+        for t in range(1,T):
+            x = self.compute_f(states[t-1], self.input_sequence[t-1])  if (self.input_dim > 0) else self.compute_f(states[t-1])
+            x_t = mv_norm(x, self.Q)
+            y = self.compute_g(x_t, self.input_sequence[t])  if (self.input_dim > 0) else self.compute_g(x_t)
+            y_t = mv_norm(y, self.R)
+            states.append(x_t)
+            outputs.append(y_t)
 
         self.output_sequence = outputs
         self.state_sequence = states
