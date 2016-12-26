@@ -85,7 +85,7 @@ class TestStateSpaceModel(unittest.TestCase):
 
                         self.assertEqual(xSmooth.size, ssm.state_dim, 'mean vector must have state_dim dimension')
                         self.assertEqual(PSmooth.shape, (ssm.state_dim, ssm.state_dim), 'cov matrix must have state_dim dimension')
-                        self.assertTrue(is_pos_def(PSmooth), 'smoothed covariance P_{T-' + str(i) +'} matrix must be positive definite')
+                        self.assertTrue(is_pos_def(PSmooth), 'is_f_linear' + str(is_f_linear) + '.  is_g_linear' + str(is_g_linear) + '.  state_dim' + str(state_dim) + '.  output_dim' + str(output_dim) + '. Smoothed covariance P_{T-' + str(i) +'} matrix must be positive definite')
 
 
     def test_parameter_learning(self):
