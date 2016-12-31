@@ -1,8 +1,8 @@
 \section{The Initialization}
 
-In our models we are faced with two kind of parameters. 
+In our models we are faced with two kind of parameters.
 \begin{itemize}
-\item \textbf{Hyper-parameters} are those that we are to set ourselves by build-out methods (cross-validation, selection criterion or home-made methods). In our case, $I_f$, $I_g$, $(c_i^f,S_i^f)$,$(c_i^g,S_i^g)$ and the dimension of the hidden variables are to be set. The article provides an heuristic way to set $(c_i^f,S_i^f)$ and $(c_i^g,S_i^g)$, that we will describe precisely.
+\item \textbf{Hyper-parameters} are those that we are to set ourselves by build-out methods (cross-validation, selection criterion or home-made methods). In our case, $I$, $J$, $(c_i,S_i)$,$(c'_j,S'_j)$ and the dimension of the hidden variables are to be set. The article provides an heuristic way to set $(c_i,S_i)$ and $(c'_j,S'_j)$, that we will describe precisely.
 \item \textbf{Parameters to be learned} are those that the EM-algorithm will output, e.g. $(\theta_f,\theta_g)$. \textbf{These parameters need to be initialized}. Note that the juncture between these two categories is quite porous. Indeed the centers and variances of the RBF Kernels could also be learn with an adaptive procedure inside the EM-algorithm. \textbf{Thus the setting of this parameters would become an initialization.}
 \end{itemize}
 Setting the Hyper-parameters is always a difficult issue, in particular in methods based of maximum-likelihood maximization because it cannot be used to discriminate the models.\\
@@ -27,20 +27,20 @@ En fait ca c'est pour haute dimension, en petite il suffit de grider l'espace...
 \subsection{Initialization of $(\theta_g,\theta_f)$}
 So we need to initialize the set of parameters (\textbf{Est-ce que Q et R y sont?}):
 \begin{eqnarray*}
-\theta_f &=& (f_1;\cdots;f_{I_f};A;B;b;Q)\\
-\theta_g &=& (g_1;\cdots;g_{I_g};C;D;d;R)
+\theta_f &=& (f_1;\cdots;f_{I};A;B;b;Q)\\
+\theta_g &=& (g_1;\cdots;g_{J};C;D;d;R)
 \end{eqnarray*}
 
 \subsubsection{First case}
 Consider the case in which the dynamics is non-linear with approximately linear output function:
 \begin{eqnarray}
-x_{k+1} &=& \sum_{i=1}^{I_f}{f_i\rho_i(x_k)}+Ax_k+Bu_k+b+w_k\\\label{eq:caca}
+x_{k+1} &=& \sum_{i=1}^{I}{f_i\rho_i(x_k)}+Ax_k+Bu_k+b+w_k\\\label{eq:caca}
 y_{k} &=& Cx_k+Du_k+d+v_k\label{eq:Lin}
 \end{eqnarray}
 The steps of the initialization are:
 \begin{itemize}
 \item Approximate the dynamics in order to apply a factor analysis. Namely (\ref{eq:Lin}) is not changed, while we consider that $x_k$ follows $\mathcal{N}(0,R)$\notes{I don't understand why it is relevant}. Through an EM-algorithm, we come up with an estimate for $C$ and an estimate for the states.
-\item Using regression to identify the $\theta_f$ parameters. 
+\item Using regression to identify the $\theta_f$ parameters.
 \end{itemize}
 
 \textbf{The factor analysis:} Consider that $x_k$ follows the law $\mathcal{N}(0,R)$ \notes{Not sure if we are compelled that they follow the same law/ follow essentially the law of $w_k$}. Then from (\ref{eq:Lin}) we have that $y_k|x_k\sim\mathcal{N}(Cx_k+Du_k+d,R)$. \notes{Note that in the coursework setting, $x_k\sim\mathcal{N}(0,I)$/ also Factor Analysis asks for R to be diagonal/ though was is important is that the EM estimation can be done correctly} \textbf{A developper: DEMANDE UN GROS BOULOT!!!}\\
@@ -48,7 +48,7 @@ T
 
 \textbf{The regression step:} We can then try to find the set of parameters by regressing the state at time k by the state estimation at the previous time. For instance finding the parameters that minimize:
 \begin{eqnarray}
-\sum_{t=1}^{T-1}{\mathbb{E}(||x_{k+1}-x_k||^2)}&=&\sum_{t=1}^T{\mathbb{E}||\sum_{i=1}^{I_f}{h_i\rho_i(x_k)}+Ax_k+Bu_k+b+w_k-x_k||^2}
+\sum_{t=1}^{T-1}{\mathbb{E}(||x_{k+1}-x_k||^2)}&=&\sum_{t=1}^T{\mathbb{E}||\sum_{i=1}^{I}{h_i\rho_i(x_k)}+Ax_k+Bu_k+b+w_k-x_k||^2}
 \end{eqnarray}
 where the expectation is taken over the inferred distribution of $x_k$ in the factor analysis.
 
@@ -56,7 +56,7 @@ where the expectation is taken over the inferred distribution of $x_k$ in the fa
 Now the case:
 \begin{eqnarray}
 x_{k+1} &=& Ax_k+Bu_k+w_k\\
-y_{k} &=& \sum_{i=1}^{I_g}{g_i\rho_i(x_k)}+Cx_k+Du_k+d+v_k
+y_{k} &=& \sum_{i=1}^{J}{g_i\rho_i(x_k)}+Cx_k+Du_k+d+v_k
 \end{eqnarray}
 
 \subsubsection{In the general case?}

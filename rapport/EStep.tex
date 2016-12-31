@@ -7,21 +7,20 @@ In other words we want to compute the conditional probabilities :
   &p_{\theta^{(k-1)}}\left(x_t, x_{t+1} \given y_1, u_1, \ldots, y_T, u_T \right), t=1 \ldots T-1\\
 \end{align*}
 
-
-\textbf{Essentially we are able to solve this inference problem (filtering or smoothing) when the dynamic is linear.}\notes{checker si c'est vrai. Noter aussi que l'on aime travailler avec des gaussiennes parce que c'est stable par combinaison lineaire.} However,  if we use the non-linear dynamics equations with $f$ and $g$, we have no guarantees that, starting from a Gaussian probability for $x_1$, we will have a Gaussian probability for $x_{t}$, and the computations become intractable.
-\textbf{To solve this problem, the authors propose to linearize the dynamics equations (\ref{eq:A},\ref{eq:B}) by their first order Taylor expansion at each time step $t$ and at a well-chosen point $\hat{x}_t$:}
+\textbf{Essentially we are able to solve this inference problem (filtering or smoothing) when the dynamic is linear.}
+However,  if we use the non-linear dynamics equations with $f$ and $g$, we have no guarantees that, starting from a Gaussian probability for $x_1$, we will have a Gaussian probability for $x_{t}$, and the computations become intractable.
+\textbf{To solve this problem, the authors propose to linearize the dynamics equations (\ref{eq:A},\ref{eq:B}) by their first order Taylor expansion at each time step $t$ and at a well-chosen point for filtering ($\tilde{x}_t$) and for smoothing ($\dot{x}_t$) :}
 \begin{align*}
-  x_{t+1} &= f(\hat{x}_t, u_t) + A_{\hat{x}_t} (x_t - \hat{x}_t) + w_t\\
-  A_t &= \frac{\partial f}{\partial x}(\hat{x}_t, u_t)\\
-  y_t &= g(\hat{x}_t, u_t) + C_{\hat{x}_t} (x_t - \hat{x}_t) + v_t\\
-  C_t &= \frac{\partial g}{\partial x}(\hat{x}_t, u_t).\\
+  x_{t+1} &= f(\tilde{x}_t, u_t) + A_{\tilde{x}_t} (x_t - \tilde{x}_t) + w_t\\
+  A_t &= \frac{\partial f}{\partial x}(\tilde{x}_t, u_t)\\
+  y_t &= g(\tilde{x}_t, u_t) + C_{\tilde{x}_t} (x_t - \tilde{x}_t) + v_t\\
+  C_t &= \frac{\partial g}{\partial x}(\tilde{x}_t, u_t).\\
 \end{align*}
 
 Then the functions are locally linear, thus all probabilities are Gaussian and we can adapt the classical inferences algorithms (\textbf{Kalman filter} for filtering and \textbf{Rauch-Tung-Stribel smoother} for smoothing).\\
 
-\notes{expliquer leur role respectif... En fait Kalman c'est pour le filtering et l'autre pour le smoothing, c'est vrai que c'est ecrit dans leur nom mais il faut preciser que le choix depend si l'on veut faire du batch ou du online: et j'ai l'impression que l'on fait du online, quelle est donc la pertinence du Kalman? Dire aussi que l'un est un premisse a l'utilisation de l'autre}
-
-This forward-backward approach, involving a linearization at each time step, is called Extented Kalman Smoothing (EKS). \textbf{One of the important issues is to define $\mathbf{\hat{x}_t}$.}\notes{Il faut le faire absolument}
+This forward-backward approach, involving a linearization at each time step, is called Extented Kalman Smoothing (EKS).
+\textbf{One of the important issues is to define $\mathbf{\tilde{x}_t}$ and $\mathbf{\dot{x}_t}$.}
 
 \subsection{Kalman filter}
 Let's first recall how Kalman filter proceed with inputs. It is a particular case where $f$ and $g$ are affine (e.g. $I=0$ and $J=0$) :
@@ -42,7 +41,8 @@ They didn't give any reasons for these simplifications, but we extended the comp
 %Is it lazyness?
 %Is it intended for pedagoical reason?
 
-As in \cite{Poly}, we denote by $\hat{x}_{t|t}$ the mean of $x_t$ conditioned on $u_1;\cdots;u_t$ and for $\hat{P}_{t|t}$ the covariance of $x_t$ given $u_1;\cdots;u_t$. It is straightforward to adapt these notations in the smoothing case ($\hat{P}_{t|T}$ and $\hat{x}_{t|T}$). Namely we have: \notes{Sous quelle distribution p? Faudra expliquer pourquoi le point $\hat{x}_t$ est bien choisi parce qu'ici il est defini a un certain moment}:
+As in \cite{Poly}, we denote by $\hat{x}_{t|t}$ the mean of $x_t$ conditioned on $u_1;\cdots;u_t$ and for $\hat{P}_{t|t}$ the covariance of $x_t$ given $u_1;\cdots;u_t$. It is straightforward to adapt these notations in the smoothing case ($\hat{P}_{t|T}$ and $\hat{x}_{t|T}$).
+We adopt the following notations :
 \begin{align*}
   \hat{x}_{t \given t} &= \mathbb{E}_p \left(x_t \given y_1, \ldots , y_t, u_1, \ldots , u_t \right) \\
   \hat{x}_{t+1 \given t} &= \mathbb{E}_p \left(x_{t+1} \given y_1, \ldots , y_t, u_1, \ldots , u_t \right) \\
@@ -77,7 +77,7 @@ We define $\tilde{x}_t$ as following :
   \tilde{x}_1 &= \hat{x}_{1 \given 0}\\
   \tilde{x}_{t+1} &= f(\hat{x}_{t \given t}, u_t)\\
 \end{align*}
-Then, in the recursion formula, we just have \notes{pourquoi est ce que ca fonctionne de juste remplacer} to replace the matrices $A$ and $C$  by the matrices $A_t$ and $C_t$ :
+Then, in the recursion formula, we just have to replace the matrices $A$ and $C$  by the matrices $A_t$ and $C_t$ :
 \begin{align*}
   A_t &= \frac{\partial f}{\partial x}(\tilde{x}_t, u_t)\\
   C_t &= \frac{\partial g}{\partial x}(\tilde{x}_t, u_t)\\
