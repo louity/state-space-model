@@ -1,13 +1,11 @@
 \section{M-step}
 
-The article miss at providing a full understanding on how Radial basis functions are used to compute exactly the M-step. In order to implement safely, it is of interest to write down all the analytic computations. So let's start from the beginning:\\
+\textbf{The article miss at providing a full understanding on how Radial basis functions are used to compute exactly the M-step.} In order to implement safely, it is of interest to write down all the analytic computations. So let's start from the beginning:\\
 
-At iteration $k$, in the M-step, we assume that the state sequence $(x_t)_{t=1 \ldots T}$ follow the probability $q \left(x_1, \ldots ,x_T \right)$ such that the state $x_t$ follow the Gaussian probability:
+At iteration $k$, in the M-step, we assume that the state sequence $(x_t)_{t=1 \ldots T}$ follow the probability $q \left(x_1, \ldots ,x_T \right)$. The sequence of states being a Markov chain, the probability $q$ is entirely defined by the marginal $q(x_t)$ and the joints $q(x_t,x_{t+1})$:
+%such that the state $x_t$ follow the Gaussian probability:
 \begin{align*}
-  q(x_t) = \mathcal{N}\left( \hat{x}_{t \given T}, \hat{P}_{t \given T} \right), \  t=1 \ldots T\\
-\end{align*}
-and that the joint states $(x_t, x_{t+1})$ follow the Gaussian probability:
-\begin{align*}
+  q(x_t) &= \mathcal{N}\left( \hat{x}_{t \given T}, \hat{P}_{t \given T} \right), \  t=1 \ldots T\\
   q(x_t, x_{t+1}) &=
   \mathcal{N}
     \left(
@@ -19,8 +17,8 @@ and that the joint states $(x_t, x_{t+1})$ follow the Gaussian probability:
       \right]
     \right), \  t=1 \ldots T-1\\
 \end{align*}
-where the quantities the means $\hat{x}_{t \given T}$ and covariance matrices $\hat{P}_{t \given T}, \hat{P}_{t,t+1 \given T}$ were computed in the E-step.
-We adopt the following notations:
+where the means $\hat{x}_{t \given T}$ and covariance matrices $\hat{P}_{t \given T}, \hat{P}_{t,t+1 \given T}$ were computed in the E-step (we choose smoothing).
+To simplify the following development we adopt the notations:
 \begin{align*}
   q_t(x) &= q(x = x_t)\\
   q_{t,t+1}(x,x') &= q \left((x,x') = (x_t, x_{t+1})\right)\\
@@ -49,12 +47,14 @@ Thus, the likelihood of the observed the sequence $\overline{y} = (\overline{y}_
   p_{\theta}(x_1, \ldots x_T, \overline{y}_1, \ldots , \overline{y}_T) &= p_{\theta}(x_1) \prod_{t=1}^{T-1}{p_{\theta}(x_{t+1}\given x_t)} \prod_{t=1}^{T}{p_{\theta}(\overline{y}_t \given x_t)}\\
 \end{align*}
 Taking the $\log$ and expectation of this likelihood over the probability $q \left(x_1, \ldots ,x_T \right)$ gives us the expected log-likelihood:
-\begin{align*}
+\begin{eqnarray*}
   l_q(\theta) & =
     \mathbb{E}_q(\log(p_{\theta}(x_1))) +
     \sum_{t=1}^{T-1}{\mathbb{E}_q \left( \log(p_{\theta}(x_{t+1} \given x_t)) \right)} +
     \sum_{t=1}^{T}{\mathbb{E}_q\left( \log(p_{\theta}(\overline{y}_t \given x_t)) \right)}
-  \\
+\end{eqnarray*}
+And from the dynamic equation $(\ref{eq:A},\ref{eq:B})$:
+\begin{align*}
   \mathbb{E}_q(\log(p_{\theta}(x_1))) &= -\frac{1}{2}\int_x{q_1(x) (x - \hat{x}_{1 \given 1})^{\top} \hat{P}_{1 \given 1}^{-1} (x - \hat{x}_{1 \given 1}) dx}
   \\
   \mathbb{E}_q \left( \log(p_{\theta}(x_{t+1} \given x_t)) \right) &= -\frac{1}{2}\int_{x,x'}{q_{t,t+1}(x, x') ((x' - f(x,u_t))^{\top} Q^{-1} (x' - f(x,u_t)) dxdx'}\\
@@ -140,26 +140,26 @@ which yields:
 Now the keypoint is to compute these expectations.
 To compute $\theta_f^{(k)}$ and $Q^{(k)}$, we need to compute the expectations:
 \begin{align*}
-  \left< (x,x') \mapsto x' \Phi_f(x,u_t_t)^{\top} \right>_{t,t+1} &=
+  \left< (x,x') \mapsto x' \Phi_f(x,u_t)^{\top} \right>_{t,t+1} &=
     \left< (x,x') \mapsto [x'\rho_1(x), \ldots , x'\rho_I(x), x'x^{\top}, x'u_t^{\top}, x']\right>_{t,t+1}
   \\
-  \left< (x,x') \mapsto \Phi_f(x, u_t_t) x'^{\top} \right>_{t,t+1} &=
+  \left< (x,x') \mapsto \Phi_f(x, u_t) x'^{\top} \right>_{t,t+1} &=
     \left< (x,x') \mapsto [x'\rho_1(x), \ldots , x'\rho_I(x), x'x^{\top}, x'u_t^{\top}, x']^{\top} \right>_{t,t+1}
   \\
-  \left< x \mapsto \Phi_f(x, u_t_t)\Phi_f(x,u_t_t)^{\top} \right>_{t} &=
+  \left< x \mapsto \Phi_f(x, u_t)\Phi_f(x,u_t)^{\top} \right>_{t} &=
     \left< x \mapsto \left[
       \begin{array}{cccccc}
         \rho_1(x)\rho_1(x) & \ldots & \rho_1(x)\rho_I(x) & \rho_1(x)x^{\top} & \rho_1(x)u_t^{\top} & \rho_1(x) \\
         \ldots & \ldots & \ldots & \ldots & \ldots & \ldots\\
         \rho_I(x)\rho_1(x) & \ldots & \rho_I(x)\rho_I(x) & \rho_I(x)x^{\top} & \rho_I(x)u_t^{\top} & \rho_I(x) \\
-        \rho_1(x)x & \ldots & \rho_I(x)x & xx^{\top} & xu_t^{\top} & x \\
+        \rho_1(x)x & \ldots & \rho_I(x)x & xx^{\top} & xu_{t}^{\top} & x \\
         \rho_1(x)u_t & \ldots & \rho_I(x)u_t & u_t x^{\top} & u_tu_t^{\top} & u_t \\
-        \rho_1(x) & \ldots & \rho_I(x) & x^{\top} & u_t^{\top} & 1 \\
+        \rho_1(x) & \ldots & \rho_I(x) & x^{\top} & u_{t}^{\top} & 1 \\
       \end{array}
     \right]
   \right>_{t}
   \\
-  \left< x' \mapsto x'x'^{\top} \right>_{t+1} &\\
+  \left< x' \mapsto x'x'^{\top} \right>_{t+1} & x \\
 \end{align*}
 So we need to compute the elementary expectations:
 \begin{align*}
