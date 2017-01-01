@@ -89,20 +89,12 @@ our minimization problem becomes:
   \left(\theta_f^{(k)}, Q^{(k)}\right) &= \underset{\theta_k, Q}{\text{argmin }}l^1_q(\theta_f, Q)\\
   \left(\theta_g^{(k)}, R^{(k)}\right) &= \underset{\theta_g, R}{\text{argmin }}l^2_q(\theta_g, R)\\
 \end{align*}
-At the minimum point, the gradients vanish
+At the minimum point, the derivatives are zero :
 \begin{align*}
-  \left[
-    \begin{array}{c} \nabla_{\theta_f} l^1_q \\ \nabla_{Q} l^1_q \end{array}
-  \right] \left(\theta_f^{(k)}, Q^{(k)}\right) &=
-  \left[
-    \begin{array}{c} 0 \\ 0 \end{array}
-  \right]\\
-  \left[
-    \begin{array}{c} \nabla_{\theta_g} l^2_q \\ \nabla_{R} l^2_q \end{array}
-  \right] \left(\theta_g^{(k)}, R^{(k)} \right) &=
-  \left[
-    \begin{array}{c} 0 \\ 0 \end{array}
-  \right] \\
+  \frac{\partial l^1_q}{\partial \theta_f} &= 0 \\
+  \frac{\partial l^1_q}{\partial Q} &= 0 \\
+  \frac{\partial l^2_q}{\partial \theta_g} &= 0 \\
+  \frac{\partial l^2_q}{\partial R} &= 0 \\
 \end{align*}
 which yields:
 \begin{align*}
@@ -159,7 +151,7 @@ To compute $\theta_f^{(k)}$ and $Q^{(k)}$, we need to compute the expectations:
     \right]
   \right>_{t}
   \\
-  \left< x' \mapsto x'x'^{\top} \right>_{t+1} & x \\
+  \left< x' \mapsto x'x'^{\top} \right>_{t+1} &\\
 \end{align*}
 So we need to compute the elementary expectations:
 \begin{align*}
@@ -211,11 +203,19 @@ and the expectation involving the product $\rho_i \rho_j$ is:
 \end{align*}
 Finally, when we multiply the RBF function $\rho_i$ and $q_{t,t+1}$, we obtain a Gaussian density in $\mathbb{R}^{2p}$ with mean $\mu^i_{t,t+1}$ and covariance $\Sigma^i_{t,t+1}$ :
 \begin{align*}
+  \mathcal{P}_{t,t+1 \given T} &= 
+    \left[
+      \begin{array}{cc} \hat{P}_{t \given T} & \hat{P}_{t,t+1 \given T}\\ \hat{P}_{t,t+1 \given T} & \hat{P}_{t+1 \given T} \end{array}
+    \right]
+  \\
+  \mathcal{X}_{t,t+1 \given T} &=
+    \left[
+      \begin{array}{c} \hat{x}_{t \given T} \\ \hat{x}_{t+1 \given T} \end{array}
+    \right]
+  \\
   \Sigma^i_{t,t+1} &=
     \left(
-      \left[
-        \begin{array}{cc} \hat{P}_{t \given T} & \hat{P}_{t,t+1 \given T}\\ \hat{P}_{t,t+1 \given T} & \hat{P}_{t+1 \given T} \end{array}
-      \right]^{-1}
+      \mathcal{P}_{t,t+1 \given T}^{-1}
        +
       \left[
         \begin{array}{cc} S_i^{-1} & 0\\ 0 & 0 \end{array}
@@ -229,12 +229,8 @@ Finally, when we multiply the RBF function $\rho_i$ and $q_{t,t+1}$, we obtain a
     &=
     \Sigma^i_{t,t+1}
       \left(
-        \left[
-          \begin{array}{cc} \hat{P}_{t \given T} & \hat{P}_{t,t+1 \given T}\\ \hat{P}_{t,t+1 \given T} & \hat{P}_{t+1 \given T} \end{array}
-        \right]^{-1}
-        \left[
-          \begin{array}{c} \hat{x}_{t \given T} \\ \hat{x}_{t+1 \given T} \end{array}
-        \right] +
+        \mathcal{P}_{t,t+1 \given T}^{-1} \mathcal{X}_{t,t+1 \given T}
+        +
         \left[
           \begin{array}{c} S_i^{-1}c_i \\ 0 \end{array}
         \right]
@@ -243,13 +239,17 @@ Finally, when we multiply the RBF function $\rho_i$ and $q_{t,t+1}$, we obtain a
 \end{align*}
 multiplied by a constant $\beta^{i}_{t,t+1}$ :
 \begin{align*}
-  \beta^i_{t,t+1} &= (2\pi)^{-p/2} |S_i|^{-1/2} |\hat{P}_{t|T}|^{-1/2} |\Sigma^i_{t,t+1}|^{1/2} \exp(-\frac{1}{2} \delta^i_{t,t+1})\\
-  \delta^i_{t,t+1} &= c_i^{\top} S_i^{-1} c_i + \hat{x}_{t \given T}^{\top} \hat{P}_{t \given T}^{-1} \hat{x}_{t \given T} - {\mu^i_{t,t+1}}^{\top} {\Sigma^i_{t,t+1}}^{-1} \mu^i_{t,t+1}\\
+  \beta^i_{t,t+1} &= (2\pi)^{-p/2} |S_i|^{-1/2} |\mathcal{P}_{t,t+1 \given T}|^{-1/2} |\Sigma^i_{t,t+1}|^{1/2} \exp(-\frac{1}{2} \delta^i_{t,t+1})\\
+  \delta^i_{t,t+1} &=
+    c_i^{\top} S_i^{-1} c_i +
+    \mathcal{X}_{t,t+1 \given T}^{\top} \mathcal{P}_{t,t+1 \given T}^{-1} \mathcal{X}_{t,t+1 \given T} - {\mu^i_{t,t+1}}^{\top} {\Sigma^i_{t,t+1}}^{-1} \mu^i_{t,t+1}\\
 \end{align*}
 Thus the last expectation is :
 \begin{align*}
   \left< (x,x') \mapsto \rho_i(x) x' \right>_{t,t+1} &= \beta^i_{t,t+1}n^i_{t,t+1}\\
 \end{align*}
+
+To compute $\theta_g^{(k)}$ and $R^{(k)}$, the formulas are the same replacing $(\rho_i, c_i, S_i)_{i=1 \ldots I}$ by $(\rho'_j, c'_j, S'_j)_{j=1 \ldots J}$.
 
 The interest of the RBF functions is that the expectations can be computed analytically and efficiently.
 Otherwise, as soon as the state space dimension is big (for example $\geq 5$), these expectations must be estimmated, which is very expensive.
