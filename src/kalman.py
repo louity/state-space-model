@@ -29,6 +29,10 @@ def check_matrix(M, shape, err_message='wrong matrix shape'):
         return M
 
 def rbf(rbf_value, rbf_center, rbf_width_inv, x):
+    '''
+    calcul h_i \rho_{i}(x) ou \rho_i est la RBF de parametres (rbf_center,rbf_width)
+    et ou h_i= rbf_value
+    '''
     dim = rbf_center.size
     K = 1.0 * det(rbf_width_inv) / power(2 * np.pi, dim / 2)
     v = (x - rbf_center)
@@ -52,6 +56,9 @@ class StateSpaceModel:
     """
 
     def __init__(self, is_f_linear=True, is_g_linear=True, state_dim=None, input_dim=None, output_dim=None, Sigma_0=None, A=None, B=None, b=None, Q=None, C=None, D=None, d=None, R=None, f_rbf_parameters=None, f_rbf_coeffs=None, g_rbf_parameters=None, g_rbf_coeffs=None):
+        '''
+        Cette fonction donne les attributs a l'objet self et verifie leur coherence
+        '''        
         self.is_f_linear = is_f_linear
         self.is_g_linear = is_g_linear
 
@@ -104,6 +111,9 @@ class StateSpaceModel:
             self.g_rbf_coeffs = [np.ones(self.output_dim) for _ in range(0, self.g_rbf_parameters['n_rbf'])]
 
     def get_rbf_parameters_for_state(self):
+        '''
+        give default parameters to the RBF f? On ne devrait pas l'utiliser car les RBF centres et variance seront fixes.
+        '''
         is_f_linear = self.is_f_linear
         is_g_linear = self.is_g_linear
 
@@ -124,12 +134,18 @@ class StateSpaceModel:
         }
 
     def initialize_f_rbf_parameters(self):
+        '''
+        Idem on ne devrait pas l'utiliser puisque l'on ne veut pas adapter les parametres de la RBF
+        '''
         if self.g_rbf_parameters is not None:
             self.f_rbf_parameters = self.g_rbf_parameters
         else:
             self.f_rbf_parameters = self.get_rbf_parameters_for_state()
 
     def initialize_g_rbf_parameters(self):
+        '''
+        Idem on ne devrait pas l'utiliser puisque l'on ne veut pas adapter les parametres de la RBF
+        '''
         if self.f_rbf_parameters is not None:
             self.g_rbf_parameters = self.f_rbf_parameters
         else:
