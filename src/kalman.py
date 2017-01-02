@@ -58,7 +58,7 @@ class StateSpaceModel:
     def __init__(self, is_f_linear=True, is_g_linear=True, state_dim=None, input_dim=None, output_dim=None, Sigma_0=None, A=None, B=None, b=None, Q=None, C=None, D=None, d=None, R=None, f_rbf_parameters=None, f_rbf_coeffs=None, g_rbf_parameters=None, g_rbf_coeffs=None):
         '''
         Cette fonction donne les attributs a l'objet self et verifie leur coherence
-        '''        
+        '''
         self.is_f_linear = is_f_linear
         self.is_g_linear = is_g_linear
 
@@ -469,12 +469,68 @@ class StateSpaceModel:
                     x2 = np.concatenate((self.smoothed_state_means[t], self.smoothed_state_means[t+1]))
                     Sigma = inv(P2Inv + S2Inv)
                     mu = Sigma.dot(P2Inv.dot(x2) + np.concatenate((SInv.dot(c), np.zeros(p))))
-                    delta = c.dot(SInv).dot(c) + x.dot(PInv).dot(x) - mu.dot(Sigma).dot(mu)
-                    beta = np.sqrt(det(Sigma) * det(SInv) * det(PInv) / power(2 * np.pi, p)) * exp(-0.5 * delta)
+                    delta = c.dot(SInv).dot(c) + x2.dot(P2Inv).dot(x2) - mu.dot(Sigma).dot(mu)
+                    beta = np.sqrt(det(Sigma) * det(SInv) * det(P2Inv) / power(2 * np.pi, p)) * exp(-0.5 * delta)
 
                     xPhiT[:, i] +=  beta * mu[p:2*p]
 
         theta_f = xPhiT.dot(inv(PhiPhiT))
 
         return theta_f
+
+    def initialize_g_with_factor_analysis(self):
+        """
+            initialize the matrix C, the vector d  and the covariance matrix R involved in the function g with factor analysis
+        """
+        T = len(self.output_sequence)
+        n_EM_iterations = 20
+
+        #initialization
+        C = self.C
+        CT = C.transpose()
+        R = self.R
+        RInv = inv(self.R)
+        p = self.state_dim
+        n = self.output_dim
+
+        # compute the y mean
+        mu_y = np.mean(self.output_sequence)
+
+        # to stores expecations and variances of x_t, t=1...T
+        E_x = np.zeros((T, p))
+        E_xxT = np.zeros((T, p, p))
+
+        # EM algorithm
+        for EM_iteration in range(0, n_EM_iterations):
+            #E-Step
+            for t in range(0, T):
+                y_t = self.output_sequence[t]
+                sigma_x_t = inv(np.identity(p) + CT.dot(RInv).dot(C))
+
+                E_x[t] = sigma_x_t.dot(CT).dot(RInv).dot(y_t - mu_y)
+                E_xxT[t] = sigma_x_t + E_x[t][:, np.newaxis].dot(E_x[t][np.newaxis, :])
+
+            #M-step
+            yxT = np.zeros((n, p))
+            yyT = np.zeros((n, n))
+            xxT = np.sum(E_xxT, axis=0)
+
+            for t in range(0, T):
+                y_t = self.output_sequence[t][:, np.newaxis]
+                x_t = E_x[t][:, np.newaxis]
+
+                yxT = yxT + y_t.dot(x_t.transpose())
+                yyT = yyT + y_t.dot(y_t.transpose())
+
+            xyT = yxT.transpose()
+            C = yxT.dot(inv(xxT))
+            R = np.diag(np.diag(yyT - C.dot(xyT)) / T)
+
+            CT = C.transpose()
+            RInv = inv(R)
+
+        # set computed values
+        self.C = C
+        self.R = R
+        self.d = mu_y
 
