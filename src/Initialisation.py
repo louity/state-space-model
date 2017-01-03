@@ -58,7 +58,7 @@ def Ini_RBF_state(X_estimated, Nbr_step_center):
 # ok c'est bon on est content...
 
 
-def Ini_Parameters_1(Nbr_step_center, Size_noise, X_estimated):
+def Ini_Parameters_1(Nbr_step_center, Size_noise, X_estimated,NumberCase):
     '''
     Ici on initialise tous les parameters du RBF, dans l'ordre:
     h1;...;h_Nbr;A;B;b;Q;C;d;R
@@ -67,6 +67,7 @@ def Ini_Parameters_1(Nbr_step_center, Size_noise, X_estimated):
     auxquels on a rajouté un bruit de taille Size_Noise.
     f est non-linear, g est lineaire, il y a un input de dimension 1.
     les h_i de f sont initializes a zero.
+    NumberCase= 1,2,3,4 ou 5 et represente les differentes valeurs du vrai f sous-jacent
     '''
     f_rbf_parameters = Ini_RBF_state(X_estimated, Nbr_step_center)
     f_rbf_coeffs = np.zeros(Nbr_step_center)
@@ -80,19 +81,28 @@ def Ini_Parameters_1(Nbr_step_center, Size_noise, X_estimated):
         state_dim=1,
         input_dim=0,
         output_dim=2,
-        Sigma_0=None,# je ne sais pas quoi en faire pour l'instant
-        A=(Simu.A1+Noise1)*np.ones((1,1)),
-        B=(Simu.B1+Noise1)*np.ones(1),
-        b=(Simu.b1+Noise1)*np.ones(1),
+        Sigma_0=np.ones((1,1)),# je ne sais pas quoi en faire pour l'instant
+        A=(getattr(Simu,'A'+str(NumberCase))+Noise1)*np.ones((1,1)),
+        B=(getattr(Simu,'B'+str(NumberCase))+Noise1)*np.ones(1),
+        b=(getattr(Simu,'b'+str(NumberCase))+Noise1)*np.ones(1),
         Q=(Simu.Q+Noise1)*np.ones((1,1)),
-        C=Simu.C1+Noise2[:,np.newaxis],
-        d=Simu.d1+Noise2,
+        C=getattr(Simu,'C'+str(NumberCase))+Noise2[:,np.newaxis],
+        d=getattr(Simu,'d'+str(NumberCase))+Noise2,
         R=Simu.R+Noise2[:,np.newaxis],
         f_rbf_parameters =f_rbf_parameters,
         f_rbf_coeffs =f_rbf_coeffs)
         
-    ssm.input_sequence=Simu.U1
+    #ssm.input_sequence=Simu.U1
     return(ssm)
     
 
-ssm=Ini_Parameters_1(10,0.01, Simu.X1_noisy)
+#Pour la premiere application
+ssm=Ini_Parameters_1(10,0.1, Simu.X1_noisy, 1)
+
+#ssm.draw_sample(T=200)
+#ssm.plot_states_in_1D()
+
+#ssm.learn_f_and_g_with_EM_algorithm()
+#ssm.plot_states_in_1D()
+
+#POur la seconde application
