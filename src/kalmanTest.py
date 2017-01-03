@@ -172,7 +172,7 @@ class TestStateSpaceModel(unittest.TestCase):
                 ssm.compute_g_optimal_parameters()
 
     def test_EM_algorithm_in_linear_case(self):
-        n_sample = 20
+        n_sample = 50
         is_f_linear = True
         is_g_linear = True
         state_dim = 1
@@ -186,6 +186,51 @@ class TestStateSpaceModel(unittest.TestCase):
         ssm = StateSpaceModel(
             is_f_linear=is_f_linear,
             is_g_linear=is_g_linear,
+            state_dim=state_dim,
+            output_dim=output_dim,
+            A=A,
+            b=b,
+            C=C,
+            d=d,
+            Q=Q,
+            R=R
+        )
+        ssm.draw_sample(T=n_sample)
+        ssm.plot_states_in_1D()
+
+        ssm.A[0, 0] += 0.1 * random()
+        ssm.b[0] += 0.1 * random()
+        ssm.C[0, 0] += 0.1 * random()
+        ssm.d[0] += 0.1 * random()
+        ssm.learn_f_and_g_with_EM_algorithm()
+        ssm.draw_sample(T=n_sample)
+        ssm.plot_states_in_1D()
+
+    def test_EM_algorithm_in_non_linear_case(self):
+        n_sample = 50
+        is_f_linear = False
+        is_g_linear = True
+        state_dim = 1
+        output_dim = 1
+        A = 0.5 * np.ones((1, 1))
+        b = 0.25 * np.ones(1)
+        C = np.ones((1, 1))
+        d = np.zeros(1)
+        Q = np.array([[0.01]])
+        R = np.array([[0.01]])
+
+        f_rbf_parameters = {
+            'n_rbf': 2,
+            'centers': np.array([[0.4], [0.6]]),
+            'width': np.array([[[0.01]], [[0.01]]])
+        }
+        f_rbf_coeffs = np.array([[0.01], [-0.01]])
+
+        ssm = StateSpaceModel(
+            is_f_linear=is_f_linear,
+            is_g_linear=is_g_linear,
+            f_rbf_parameters=f_rbf_parameters,
+            f_rbf_coeffs=f_rbf_coeffs,
             state_dim=state_dim,
             output_dim=output_dim,
             A=A,
