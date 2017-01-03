@@ -719,7 +719,7 @@ class StateSpaceModel:
     def plot_states_in_1D(self):
         if (self.state_dim != 1):
             raise Exception('state plot can be sonly in 1D')
-
+        plt.clf()
         plt.figure(1)
         min = 0
         max = 1
