@@ -112,7 +112,7 @@ class StateSpaceModel:
 
     def get_rbf_parameters_for_state(self):
         '''
-        give default parameters to the RBF f? On ne devrait pas l'utiliser car les RBF centres et variance seront fixes.
+        give default parameters to the RBF on the state space
         '''
         is_f_linear = self.is_f_linear
         is_g_linear = self.is_g_linear
@@ -127,11 +127,29 @@ class StateSpaceModel:
         self.is_f_linear = is_f_linear
         self.is_g_linear = is_g_linear
 
-        return {
-            'n_rbf': DEFAULT_N_RBF,
-            'centers': random.sample(self.smoothed_state_means, DEFAULT_N_RBF),#TODO : replace random selection by k-means
-            'width': random.sample(self.smoothed_state_covariance, DEFAULT_N_RBF)
-        }
+        # if state di is one, place rbf uniformly
+        if (self.state_dim == 1):
+            x_min = np.min(self.smoothed_state_means)
+            x_max = np.max(self.smoothed_state_means)
+            rbf_centers = np.zeros((DEFAULT_N_RBF, 1))
+            rbf_width = np.zeros((DEFAULT_N_RBF, 1, 1))
+            center_space = (x_max - x_min) / DEFAULT_N_RBF
+
+            for i in range(0, DEFAULT_N_RBF):
+                rbf_centers[i, 0] = x_min + (i + 0.5) * center_space
+                rbf_width[i, 0, 0] = center_space**2
+
+            return {
+                'n_rbf': DEFAULT_N_RBF,
+                'centers': rbf_centers,
+                'width': rbf_width
+            }
+        else:
+            return {
+                'n_rbf': DEFAULT_N_RBF,
+                'centers': random.sample(self.smoothed_state_means, DEFAULT_N_RBF),#TODO : replace random selection by k-means
+                'width': random.sample(self.smoothed_state_covariance, DEFAULT_N_RBF)
+            }
 
     def initialize_f_rbf_parameters(self):
         '''
