@@ -1,7 +1,7 @@
 # coding: utf8
 import numpy as np
 import matplotlib.pyplot as plt
-from numpy import power, exp
+from numpy import power, exp, sqrt
 from numpy.linalg import inv, det
 from numpy.random import multivariate_normal as mv_norm
 import random
@@ -450,7 +450,7 @@ class StateSpaceModel:
                 Sigma = inv(PInv + SInv)
                 mu = Sigma.dot(PInv.dot(x) + SInv.dot(c))
                 delta = c.dot(SInv).dot(c) + x.dot(PInv).dot(x) - mu.dot(Sigma).dot(mu)
-                beta = power(det(Sigma) * det(SInv) * det(PInv), 0.5) * exp(-0.5 * delta) / power(2 * np.pi, 0.5 * p)
+                beta = power(2 * np.pi, -p / 2) * sqrt(det(Sigma) * det(SInv) * det(PInv)) * exp(-0.5 * delta)
 
                 PhiPhiT[I: I+p, i] += beta * mu
                 PhiPhiT[i, I: I+p] += beta * mu
@@ -469,7 +469,7 @@ class StateSpaceModel:
                     Sigma = inv(PInv + SInv + SjInv)
                     mu = Sigma.dot(PInv.dot(x) + SInv.dot(c) + SjInv.dot(cj))
                     delta = c.dot(SInv).dot(c) + cj.dot(SjInv).dot(cj) + x.dot(PInv).dot(x) - mu.dot(Sigma).dot(mu)
-                    beta = power(det(Sigma) * det(SInv) * det(SjInv) * det(PInv), 0.5) * exp(-0.5 * delta) / power(2 * np.pi, p)
+                    beta = power(2 * np.pi, -p) * sqrt(det(Sigma) * det(SInv) * det(SjInv) * det(PInv)) * exp(-0.5 * delta)
 
                     if (i == j):
                         PhiPhiT[i, i] += beta
@@ -493,7 +493,7 @@ class StateSpaceModel:
                     Sigma = inv(P2Inv + S2Inv)
                     mu = Sigma.dot(P2Inv.dot(x2) + np.concatenate((SInv.dot(c), np.zeros(p))))
                     delta = c.dot(SInv).dot(c) + x2.dot(P2Inv).dot(x2) - mu.dot(Sigma).dot(mu)
-                    beta = np.sqrt(det(Sigma) * det(SInv) * det(P2Inv) / power(2 * np.pi, p)) * exp(-0.5 * delta)
+                    beta = power(2 * np.pi, -p / 2) * sqrt(det(Sigma) * det(SInv) * det(P2Inv)) * exp(-0.5 * delta)
 
                     xPhiT[:, i] +=  beta * mu[p:2*p]
 
@@ -570,7 +570,7 @@ class StateSpaceModel:
                 Sigma = inv(PInv + SInv)
                 mu = Sigma.dot(PInv.dot(x) + SInv.dot(c))
                 delta = c.dot(SInv).dot(c) + x.dot(PInv).dot(x) - mu.dot(Sigma).dot(mu)
-                beta = power(det(Sigma) * det(SInv) * det(PInv), 0.5) * exp(-0.5 * delta) / power(2 * np.pi, 0.5 * p)
+                beta = power(2 * np.pi, -p / 2) * sqrt(det(Sigma) * det(SInv) * det(PInv)) * exp(-0.5 * delta)
 
                 PhiPhiT[J: J+p, j] += beta * mu
                 PhiPhiT[j, J: J+p] += beta * mu
@@ -591,7 +591,7 @@ class StateSpaceModel:
                     Sigma = inv(PInv + SInv + SkInv)
                     mu = Sigma.dot(PInv.dot(x) + SInv.dot(c) + SkInv.dot(ck))
                     delta = c.dot(SInv).dot(c) + ck.dot(SkInv).dot(ck) + x.dot(PInv).dot(x) - mu.dot(Sigma).dot(mu)
-                    beta = power(det(Sigma) * det(SInv) * det(SkInv) * det(PInv), 0.5) * exp(-0.5 * delta) / power(2 * np.pi, p)
+                    beta = power(2 * np.pi, -p) * sqrt(det(Sigma) * det(SInv) * det(SkInv) * det(PInv)) * exp(-0.5 * delta)
 
                     if (j == k):
                         PhiPhiT[j, j] += beta
@@ -719,5 +719,5 @@ class StateSpaceModel:
         X = np.linspace(min, max, 100)
         plt.plot(X, np.vectorize(f)(X),'r-')
         plt.plot(X, X, 'r--')
-        plt.title('F : x -> ' + str(self.A[0,0]) + ' * x + ' + str(self.b[0]))
+        plt.title('F : x -> ' + str(self.A[0, 0]) + ' * x + ' + str(self.b[0]))
         plt.show()
