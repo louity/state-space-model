@@ -7,6 +7,8 @@ jsdom.env(
   function (err, window) {
 
 
+    var inputs = true
+
     var width = 300;
     var height = 200;
 
@@ -26,8 +28,6 @@ jsdom.env(
     var vertical_line_color = "black"
     var horizontal_line_color = "black"
     var curved_line_color = "black"
-
-
 
     var svg = window.d3.select("body")
       .append("svg")
@@ -69,21 +69,23 @@ jsdom.env(
             .attr("marker-end", "url(#arrow)")
       } else {
         // inputs
-        var ux = (i+1 + 0.5) * circle_spacing
-        var uy = input_height
-        svg.append("circle")
-            .attr("cx", ux)
-            .attr("cy", uy)
-            .attr("r", circle_radius)
-            .attr("stroke", "black")
-            .attr("fill", "none")
-        svg.append("text")
-          .attr("x", ux)
-          .attr("y", uy)
-          .attr("font-size", text_size)
-          .attr("text-anchor", "middle")
-          .append("tspan").text("u")
-            .append("tspan").attr("baseline-shift", "sub").text(index)
+        if (inputs) {
+          var ux = (i+1 + 0.5) * circle_spacing
+          var uy = input_height
+          svg.append("circle")
+              .attr("cx", ux)
+              .attr("cy", uy)
+              .attr("r", circle_radius)
+              .attr("stroke", "black")
+              .attr("fill", "none")
+          svg.append("text")
+            .attr("x", ux)
+            .attr("y", uy)
+            .attr("font-size", text_size)
+            .attr("text-anchor", "middle")
+            .append("tspan").text("u")
+              .append("tspan").attr("baseline-shift", "sub").text(index)
+          }
 
         // states
         var xx = (i+1) * circle_spacing
@@ -139,16 +141,17 @@ jsdom.env(
             .attr("marker-end", "url(#arrow)")
         }
         //curved arrow
-
-        var x1 = ux
-        var y1 = (uy + circle_radius)
-        var x2 = (yx + circle_radius)
-        var y2 = yy
-        svg.append("path")
-          .attr("d", "M " + x1 + " " + y1 + " C " + x1 +  " " + (y1 + 10)+ ", " + (x2 + 0.5 * circle_spacing) + " " + y2 +", " + x2 + " " + y2)
-          .attr("stroke", "black")
-          .attr("fill", "transparent")
-          .attr("marker-end", "url(#arrow)")
+        if (inputs) {
+          var x1 = ux
+          var y1 = (uy + circle_radius)
+          var x2 = (yx + circle_radius)
+          var y2 = yy
+          svg.append("path")
+            .attr("d", "M " + x1 + " " + y1 + " C " + x1 +  " " + (y1 + 10)+ ", " + (x2 + 0.5 * circle_spacing) + " " + y2 +", " + x2 + " " + y2)
+            .attr("stroke", "black")
+            .attr("fill", "transparent")
+            .attr("marker-end", "url(#arrow)")
+        }
       }
 
     }
