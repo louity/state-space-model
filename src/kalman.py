@@ -564,8 +564,8 @@ class StateSpaceModel:
             # expectations involving RBF
             for j in range(0, J):
                 # simplify notatations
-                SInv = inv(self.f_rbf_parameters['width'][j])
-                c = self.f_rbf_parameters['centers'][j]
+                SInv = inv(self.g_rbf_parameters['width'][j])
+                c = self.g_rbf_parameters['centers'][j]
 
                 Sigma = inv(PInv + SInv)
                 mu = Sigma.dot(PInv.dot(x) + SInv.dot(c))
@@ -585,8 +585,8 @@ class StateSpaceModel:
 
                 # expectations with mu^{i,j}_t and beta^{i,j}_t
                 for k in range(j, J):
-                    SkInv = inv(self.f_rbf_parameters['width'][k])
-                    ck = self.f_rbf_parameters['centers'][k]
+                    SkInv = inv(self.g_rbf_parameters['width'][k])
+                    ck = self.g_rbf_parameters['centers'][k]
 
                     Sigma = inv(PInv + SInv + SkInv)
                     mu = Sigma.dot(PInv.dot(x) + SInv.dot(c) + SkInv.dot(ck))
