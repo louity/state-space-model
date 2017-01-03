@@ -521,7 +521,7 @@ class StateSpaceModel:
         self.A = theta_f[:, I:I+p]
         self.b = theta_f[:, I+p+q]
         for i in range(0, I):
-            self.g_rbf_coeffs[i] = theta_f[:, i]
+            self.f_rbf_coeffs[i] = theta_f[:, i]
         if (q > 0):
             self.B = theta_f[:, I+p:I+p+q]
 
@@ -687,13 +687,13 @@ class StateSpaceModel:
         n_EM_iterations = 20
 
         if (self.is_f_linear and self.is_g_linear):
-            self.initialize_g_with_factor_analysis()
+            #self.initialize_g_with_factor_analysis()
 
             for EM_iteration in range(0, n_EM_iterations):
                 # E-Step
                 self.kalman_smoothing(is_extended=False)
                 #M-Step
-                use_smoothed_values = True
+                use_smoothed_values = False
                 self.compute_f_optimal_parameters(use_smoothed_values=use_smoothed_values)
                 self.compute_g_optimal_parameters(use_smoothed_values=use_smoothed_values)
 
