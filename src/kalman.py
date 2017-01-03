@@ -354,7 +354,7 @@ class StateSpaceModel:
     def draw_sample(self, T=1, input_sequence=None):
         if (self.input_dim > 0 ) and (input_sequence is None) and (self.input_sequence is None or len(self.input_sequence) < T):
             print 'No input sequence given, setting inputs to zero'
-            self.input_sequence = [np.zeros(self.input_dim) for _ in range(0,T)]
+            self.input_sequence = [np.zeros(self.input_dim) for _ in range(0, T)]
 
         states = np.zeros((T, self.state_dim))
         outputs = np.zeros((T, self.output_dim))
@@ -494,9 +494,14 @@ class StateSpaceModel:
                     xPhiT[:, i] +=  beta * mu[p:2*p]
 
         theta_f = xPhiT.dot(inv(PhiPhiT))
-        Q = xxT - theta_f.dot(xPhiT.transpose())
+        self.Q = xxT - theta_f.dot(xPhiT.transpose())
 
-        return (theta_f, Q)
+        self.A = theta_f[:, I:I+p]
+        self.b = theta_f[:, I+p+q]
+        for i in range(0, I):
+            self.g_rbf_coeffs[i] = theta_f[:, i]
+        if (q > 0):
+            self.B = theta_f[:, I+p:I+p+q]
 
     def compute_g_optimal_parameters(self, use_smoothed_values=False):
         T = len(self.output_sequence)
@@ -588,9 +593,14 @@ class StateSpaceModel:
                     PhiPhiT[k, j] += beta
 
         theta_g = yPhiT.dot(inv(PhiPhiT))
-        R = yyT - theta_g.dot(yPhiT.transpose())
+        self.R = yyT - theta_g.dot(yPhiT.transpose())
 
-        return (theta_g, R)
+        self.C = theta_g[:, J:J+p]
+        self.d = theta_g[:, J+p+q]
+        for j in range(0, J):
+            self.g_rbf_coeffs[j] = theta_g[:,j]
+        if (q > 0):
+            self.D = theta_g[:,J+p:J+p+q]
 
     def initialize_g_with_factor_analysis(self):
         """
@@ -647,3 +657,36 @@ class StateSpaceModel:
         self.C = C
         self.R = R
         self.d = mu_y
+
+    def learn_f_and_g_with_EM_algorithm(self):
+        n_EM_iterations = 20
+
+        if (self.is_f_linear and self.is_g_linear):
+            self.initialize_g_with_factor_analysis()
+
+            for EM_iteration in range(0, n_EM_iterations):
+                # E-Step
+                self.kalman_smoothing(is_extended=False)
+                #M-Step
+                use_smoothed_values = True
+                self.compute_f_optimal_parameters(use_smoothed_values=use_smoothed_values)
+                self.compute_g_optimal_parameters(use_smoothed_values=use_smoothed_values)
+
+        if (not self.is_f_linear and self.is_g_linear):
+            # make f linear and run a first EM to intialize
+            self.is_f_linear = True
+            self.learn_f_and_g_with_EM_algorithm()
+            self.is_f_linear = False
+
+            for EM_iteration in range(0, n_EM_iterations):
+                # E-Step: use kalman filter only since extended kalman smoother does not work
+                self.kalman_filtering(is_extended=True)
+                #M-Step
+                use_smoothed_values = False
+                self.compute_f_optimal_parameters(use_smoothed_values=use_smoothed_values)
+                self.compute_g_optimal_parameters(use_smoothed_values=use_smoothed_values)
+
+        if (self.is_f_linear and not self.is_g_linear):
+            raise Exception('EM not implemented for f linear and g non-linear')
+        if (not self.is_f_linear and not self.is_g_linear):
+            raise Exception('EM not implemented for f non-linear and g non-linear')
