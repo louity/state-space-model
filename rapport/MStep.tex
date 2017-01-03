@@ -1,7 +1,5 @@
 \section{M-step}
 
-\textbf{The article miss at providing a full understanding on how Radial basis functions are used to compute exactly the M-step.} In order to implement safely, it is of interest to write down all the analytic computations. So let's start from the beginning:\\
-
 At iteration $k$, in the M-step, we assume that the state sequence $(x_t)_{t=1 \ldots T}$ follow the probability $q \left(x_1, \ldots ,x_T \right)$. The sequence of states being a Markov chain, the probability $q$ is entirely defined by the marginal $q(x_t)$ and the joints $q(x_t,x_{t+1})$:
 %such that the state $x_t$ follow the Gaussian probability:
 \begin{align*}
@@ -100,7 +98,7 @@ which yields:
 \begin{align*}
   \theta_f^{(k)} &=
     \left(
-      \sum_{t=1}^{T-1}{\left< x' \mapsto x' \Phi_f(x,u_t)^{\top} \right>_{t+1}}
+      \sum_{t=1}^{T-1}{\left< (x,x') \mapsto x' \Phi_f(x,u_t)^{\top} \right>_{t+1}}
     \right)
     \left(
       \sum_{t=1}^{T-1}{\left< x \mapsto \Phi_f(x, u_t)\Phi_f(x,u_t)^{\top} \right>_{t}}
@@ -250,7 +248,37 @@ Thus the last expectation is :
   \left< (x,x') \mapsto \rho_i(x) x' \right>_{t,t+1} &= \beta^i_{t,t+1}n^i_{t,t+1}\\
 \end{align*}
 
-To compute $\theta_g^{(k)}$ and $R^{(k)}$, the formulas are the same replacing $(\rho_i, c_i, S_i)_{i=1 \ldots I}$ by $(\rho'_j, c'_j, S'_j)_{j=1 \ldots J}$.
+We notice that the interest of the RBF functions is that the expectations can be computed analytically and efficiently.\\
 
-The interest of the RBF functions is that the expectations can be computed analytically and efficiently.
-Otherwise, as soon as the state space dimension is big (for example $\geq 5$), these expectations must be estimmated, which is very expensive.
+Now, to compute $\theta_g^{(k)}$ and $R^{(k)}$, we need to compute the expectations:
+\begin{align*}
+  \left< x \mapsto \overline{y}_t \Phi_g(x,u_t)^{\top} \right>_{t} &=
+    \left< x \mapsto [\overline{y}_t\rho'_1(x), \ldots , \overline{y}_t\rho'_J(x), \overline{y}_tx^{\top}, \overline{y}_tu_t^{\top}, \overline{y}_t]\right>_{t}
+  \\
+  \left< x \mapsto \Phi_g(x, u_t) \overline{y}_t^{\top} \right>_{t} &=
+    \left< x \mapsto [\overline{y}_t\rho'_1(x), \ldots , \overline{y}_t\rho'_J(x), \overline{y}_tx^{\top}, \overline{y}_tu_t^{\top}, \overline{y}_t]^{\top} \right>_{t}
+  \\
+  \left< x \mapsto \Phi_g(x, u_t)\Phi_g(x,u_t)^{\top} \right>_{t} &=
+    \left< x \mapsto \left[
+      \begin{array}{cccccc}
+        \rho'_1(x)\rho'_1(x) & \ldots & \rho'_1(x)\rho'_J(x) & \rho'_1(x)x^{\top} & \rho'_1(x)u_t^{\top} & \rho'_1(x) \\
+        \ldots & \ldots & \ldots & \ldots & \ldots & \ldots\\
+        \rho'_J(x)\rho'_1(x) & \ldots & \rho'_J(x)\rho'_J(x) & \rho'_J(x)x^{\top} & \rho'_J(x)u_t^{\top} & \rho'_J(x) \\
+        \rho'_1(x)x & \ldots & \rho'_J(x)x & xx^{\top} & xu_{t}^{\top} & x \\
+        \rho'_1(x)u_t & \ldots & \rho'_J(x)u_t & u_t x^{\top} & u_tu_t^{\top} & u_t \\
+        \rho'_1(x) & \ldots & \rho'_J(x) & x^{\top} & u_{t}^{\top} & 1 \\
+      \end{array}
+    \right]
+  \right>_{t}
+  \\
+\end{align*}
+For that, we need to compute the elementary expectations :
+\begin{align*}
+  &\left< x \mapsto \rho'_j(x)\rho'_k(x) \right>_{t}\\
+  &\left< x \mapsto \rho'_j(x) x \right>_{t}\\
+  &\left< x \mapsto \rho'_j(x) \right>_{t}\\
+  &\left< x \mapsto xx^{\top} \right>_{t}\\
+  &\left< x \mapsto x \right>_{t}\\
+\end{align*}
+The formulas for these expecations are the same as previously, replacing $c_i, S_i, c_j, S_j$ by $c'_j, S'_j, c'_k, S'_k$.
+
