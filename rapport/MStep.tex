@@ -168,6 +168,7 @@ So we need to compute the elementary expectations:
 We begin with the simple ones :
 \begin{align*}
   \left< x' \mapsto x'\right>_{t+1} &= \hat{x}_{t+1 \given T}\\
+  \left< x' \mapsto x'x'^{\top}\right>_{t+1} &= \hat{x}_{t+1 \given T}\hat{x}_{t+1 \given T}^{\top} + \hat{P}_{t+1 \given T}\\
   \left< (x,x') \mapsto x'x^{\top}\right>_{t,t+1} &= \hat{x}_{t+1 \given T} \hat{x}_{t \given T}^{\top} + \hat{P}_{t,t+1 \given T}\\
   \left< x \mapsto xx^{\top}\right>_{t} &= \hat{x}_{t \given T} \hat{x}_{t \given T}^{\top} + \hat{P}_{t \given T}\\
   \left< x \mapsto x\right>_{t} &= \hat{x}_{t \given T}\\
