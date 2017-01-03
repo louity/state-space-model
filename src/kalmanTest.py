@@ -3,6 +3,7 @@
 import unittest
 import numpy as np
 from kalman import StateSpaceModel
+from numpy.random import rand
 
 def is_pos_def(M):
     return np.all(np.linalg.eigvals(M) > 0)
@@ -154,21 +155,60 @@ class TestStateSpaceModel(unittest.TestCase):
                         self.assertEqual(PSmooth.shape, (ssm.state_dim, ssm.state_dim), 'cov matrix must have state_dim dimension')
                         self.assertTrue(is_pos_def(PSmooth), 'is_f_linear' + str(is_f_linear) + '.  is_g_linear' + str(is_g_linear) + '.  state_dim' + str(state_dim) + '.  output_dim' + str(output_dim) + '. Smoothed covariance P_{T-' + str(i) +'} matrix must be positive definite')
 
-    def test_parameter_learning(self):
+    def test_parameter_learning_in_linear_case(self):
         """
             teste la méthode compute_f_optimal_parametes
         """
-        for i, (is_f_linear, is_g_linear) in enumerate(zip([True, False, True, False], [True, True, False, False])):
-            # tester différentes dimensions pour les espaces
-            for j, (state_dim, output_dim) in enumerate(zip([1], [1])):
-                # tester différentes tailles
-                for k, n_sample in enumerate([15]):
-                    print 'f linear :', is_f_linear, '. g linear :', is_g_linear, ' state_dim :', state_dim, ' output_dim :', output_dim, ' n_sample :', n_sample
-                    ssm = StateSpaceModel(is_f_linear=is_f_linear, is_g_linear=is_g_linear, state_dim=state_dim, output_dim=output_dim)
-                    ssm.draw_sample(T=n_sample)
-                    is_extended = not is_f_linear or not is_g_linear
-                    ssm.kalman_smoothing(is_extended=is_extended)
-                    ssm.compute_f_optimal_parameters()
+        is_f_linear = True
+        is_g_linear = True
+        for j, (state_dim, output_dim) in enumerate(zip([1], [1])):
+            # tester différentes tailles
+            for k, n_sample in enumerate([100]):
+                ssm = StateSpaceModel(is_f_linear=is_f_linear, is_g_linear=is_g_linear, state_dim=state_dim, output_dim=output_dim)
+                ssm.draw_sample(T=n_sample)
+                is_extended = False
+                ssm.kalman_smoothing(is_extended=is_extended)
+                ssm.compute_f_optimal_parameters()
+                ssm.compute_g_optimal_parameters()
+
+    def test_EM_algorithm_in_linear_case(self):
+        n_sample = 50
+        is_f_linear = True
+        is_g_linear = True
+        state_dim = 1
+        output_dim = 1
+        input_dim = 1
+        A = rand(1, 1)
+        b = rand(1)
+        C = rand(1, 1)
+        d = rand(1)
+        Q = np.array([[0.03]])
+        R = np.array([[0.03]])
+        ssm = StateSpaceModel(
+            is_f_linear=is_f_linear,
+            is_g_linear=is_g_linear,
+            state_dim=state_dim,
+            output_dim=output_dim,
+            input_dim=input_dim,
+            A=A,
+            b=b,
+            C=C,
+            d=d,
+            Q=Q,
+            R=R
+        )
+        ssm.input_sequence = rand(n_sample, 1)
+        ssm.draw_sample(T=n_sample)
+        ssm.plot_states_in_1D()
+
+        ssm.A = np.array([[0.5]])
+        ssm.b = np.array([0.5])
+        ssm.C = np.array([[0.5]])
+        ssm.d = np.array([0.5])
+        ssm.learn_f_and_g_with_EM_algorithm()
+        ssm.draw_sample(T=n_sample)
+        ssm.plot_states_in_1D()
+
 
 # lance les tests
 suite = unittest.TestLoader().loadTestsFromTestCase(TestStateSpaceModel)

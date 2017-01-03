@@ -1,5 +1,6 @@
 # coding: utf8
 import numpy as np
+import matplotlib.pyplot as plt
 from numpy import power, exp
 from numpy.linalg import inv, det
 from numpy.random import multivariate_normal as mv_norm
@@ -107,7 +108,7 @@ class StateSpaceModel:
             print 'No rbf parameters provided for g, initialize them '
             self.initialize_g_rbf_parameters()
         if not self.is_g_linear and self.g_rbf_coeffs is None:
-            self.g_rbf_coeffs = np.zeros((self.g_rbf_parameters['n_rbf'], self.state_dim))
+            self.g_rbf_coeffs = np.zeros((self.g_rbf_parameters['n_rbf'], self.output_dim))
 
     def get_rbf_parameters_for_state(self):
         '''
@@ -690,3 +691,27 @@ class StateSpaceModel:
             raise Exception('EM not implemented for f linear and g non-linear')
         if (not self.is_f_linear and not self.is_g_linear):
             raise Exception('EM not implemented for f non-linear and g non-linear')
+
+    def plot_states_in_1D(self):
+        if (self.state_dim != 1):
+            raise Exception('state plot can be sonly in 1D')
+
+        plt.figure(1)
+        min = 0
+        max = 1
+
+        if (self.state_sequence is not None):
+            states = self.state_sequence
+            T = len(states)
+            plt.scatter(states[0:T-1], states[1:])
+            min = np.min(states)
+            max = np.max(states)
+
+        def f(x):
+            return self.compute_f(np.array([x]))[0]
+
+        X = np.linspace(min, max, 100)
+        plt.plot(X, np.vectorize(f)(X),'r-')
+        plt.plot(X, X, 'r--')
+        plt.title('F : x -> ' + str(self.A[0,0]) + ' * x + ' + str(self.b[0]))
+        plt.show()
