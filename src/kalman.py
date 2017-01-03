@@ -380,7 +380,7 @@ class StateSpaceModel:
         self.output_sequence = outputs
         self.state_sequence = states
 
-    def compute_f_optimal_parameters(self):
+    def compute_f_optimal_parameters(self, use_smoothed_values=False):
         T = len(self.output_sequence)
         I = self.f_rbf_parameters['n_rbf'] if (not self.is_f_linear) else 0
         p = self.state_dim
@@ -392,39 +392,58 @@ class StateSpaceModel:
 
         xPhiT = np.zeros((p, I+p+q+1))
         PhiPhiT = np.zeros((I+p+q+1, I+p+q+1))
+        xxT = np.zeros((p, p))
 
-        for t in range(0,T):
-            PInv = inv(self.smoothed_state_covariance[t])
-            x = self.smoothed_state_means[t]
+        for t in range(0, T):
+            # simplify notations
             u = self.input_sequence[t] if (q > 0) else None
 
-            # expectations involving only x
-            PhiPhiT[I:I+p, I:I+p] = x[:, np.newaxis].dot(x[np.newaxis, :]) + self.smoothed_state_covariance[t]
+            if (use_smoothed_values):
+                P = self.smoothed_state_covariance[t]
+                PInv = inv(P)
+                x = self.smoothed_state_means[t]
+                if (t < T-1):
+                    x_plus = self.smoothed_state_means[t+1]
+                    P_plus = self.smoothed_state_covariance[t+1]
+                    PCor = self.smoothed_state_correlation[t]
+            else:
+                P = self.filtered_state_covariance[t, 1]
+                PInv = inv(P)
+                x = self.filtered_state_means[t, 1]
+                if (t < T-1):
+                    x_plus = self.filtered_state_means[t+1, 1]
+                    P_plus = self.filtered_state_covariance[t+1, 1]
+                    PCor = self.filtered_state_correlation[t]
 
+            # expectations involving only x
+            # PhiPhiT
+            PhiPhiT[I:I+p, I:I+p] += x[:, np.newaxis].dot(x[np.newaxis, :]) + P
+            PhiPhiT[I:I+p, I+p+q] += x
+            PhiPhiT[I+p+q, I:I+p] += x
+            PhiPhiT[I+p+q, I+p+q] += 1
+
+            # if input space dimension > 1
             if (q > 0):
                 xuT = x[:, np.newaxis].dot(u[np.newaxis, :])
-                PhiPhiT[I:I+p, I+p:I+p+q] = xuT
-                PhiPhiT[I+p:I+p+q, I:I+p] = xuT.transpose()
+                uuT = u[:, np.newaxis].dot(u[np.newaxis, :])
 
-                PhiPhiT[I+p:I+p+q, I+p:I+p+q] = u[:, np.newaxis].dot(u[np.newaxis, :])
+                PhiPhiT[I:I+p, I+p:I+p+q] += xuT
+                PhiPhiT[I+p:I+p+q, I:I+p] += xuT.transpose()
+                PhiPhiT[I+p:I+p+q, I+p:I+p+q] += uuT
+                PhiPhiT[I+p:I+p+q, I+p+q] += u
+                PhiPhiT[I+p+q, I+p:I+p+q] += u
 
-                PhiPhiT[I+p:I+p+q, I+p+q] = u
-                PhiPhiT[I+p+q, I+p:I+p+q] = u
-
-            PhiPhiT[I:I+p, I+p+q] = x
-            PhiPhiT[I+p+q, I:I+p] = x
-
-
-            PhiPhiT[I+p+q, I+p+q] = 1
-
+            # xPhiT and xxT
             if (t < T-1):
-                xPhiT[:,I:I+p] = self.smoothed_state_means[t+1][:, np.newaxis].dot(self.smoothed_state_means[t][np.newaxis, :]) + self.smoothed_state_correlation[t]
-                xPhiT[:,I+p+q] = self.smoothed_state_means[t+1]
+                xPhiT[:,I:I+p] += x_plus[:, np.newaxis].dot(x[np.newaxis, :]) + PCor
+                xPhiT[:,I+p+q] += x_plus
+                xxT += x_plus[:, np.newaxis].dot(x_plus[np.newaxis, :]) + P_plus
                 if (q > 0):
-                    xPhiT[:,I+p:I+p+q] = self.smoothed_state_means[t+1][:, np.newaxis].dot(u[np.newaxis, :])
+                    xPhiT[:,I+p:I+p+q] += x_plus[:, np.newaxis].dot(u[np.newaxis, :])
 
             # expectations involving RBF
-            for i in range(0,I):
+            for i in range(0, I):
+                # simplify notatations
                 SInv = inv(self.f_rbf_parameters['width'][i])
                 c = self.f_rbf_parameters['centers'][i]
 
@@ -435,16 +454,15 @@ class StateSpaceModel:
 
                 PhiPhiT[I: I+p, i] += beta * mu
                 PhiPhiT[i, I: I+p] += beta * mu
+                PhiPhiT[I+p+q, i] += beta
+                PhiPhiT[i, I+p+q] += beta
 
                 if (q > 0):
                     PhiPhiT[I+p: I+p+q, i] += beta * u
                     PhiPhiT[i, I+p: I+p+q] += beta * u
 
-                PhiPhiT[I+p+q, i] += beta
-                PhiPhiT[i, I+p+q] += beta
-
                 # expectations with mu^{i,j}_t and beta^{i,j}_t
-                for j in range(i,I):
+                for j in range(i, I):
                     SjInv = inv(self.f_rbf_parameters['width'][j])
                     cj = self.f_rbf_parameters['centers'][j]
 
@@ -458,15 +476,17 @@ class StateSpaceModel:
 
                 # expectations with mu^i_{t,t+1} and beta^i_{t,t+1}
                 if (t < T-1):
-                    P2Inv = np.zeros((2*p, 2*p))
-                    P2Inv[0:p,0:p] = self.smoothed_state_covariance[t]
-                    P2Inv[p:2*p,p:2*p] = self.smoothed_state_covariance[t+1]
-                    P2Inv[0:p,p:2*p] = self.smoothed_state_correlation[t]
-                    P2Inv[p:2*p,0:p] = self.smoothed_state_correlation[t]
+                    P2 = np.zeros((2*p, 2*p))
+                    P2[0:p,0:p] = P
+                    P2[p:2*p,p:2*p] = P_plus
+                    P2[0:p,p:2*p] = PCor
+                    P2[p:2*p,0:p] = PCor
+                    P2Inv = inv(P2)
+
                     S2Inv = np.zeros((2*p, 2*p))
                     S2Inv[0:p,0:p] = SInv
 
-                    x2 = np.concatenate((self.smoothed_state_means[t], self.smoothed_state_means[t+1]))
+                    x2 = np.concatenate((x, x_plus))
                     Sigma = inv(P2Inv + S2Inv)
                     mu = Sigma.dot(P2Inv.dot(x2) + np.concatenate((SInv.dot(c), np.zeros(p))))
                     delta = c.dot(SInv).dot(c) + x2.dot(P2Inv).dot(x2) - mu.dot(Sigma).dot(mu)
@@ -475,8 +495,9 @@ class StateSpaceModel:
                     xPhiT[:, i] +=  beta * mu[p:2*p]
 
         theta_f = xPhiT.dot(inv(PhiPhiT))
+        Q = xxT - theta_f.dot(xPhiT.transpose())
 
-        return theta_f
+        return (theta_f, Q)
 
     def initialize_g_with_factor_analysis(self):
         """
@@ -533,4 +554,3 @@ class StateSpaceModel:
         self.C = C
         self.R = R
         self.d = mu_y
-
