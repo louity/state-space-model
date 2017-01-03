@@ -3,7 +3,7 @@
 import unittest
 import numpy as np
 from kalman import StateSpaceModel
-from numpy.random import rand
+from numpy.random import rand, random
 
 def is_pos_def(M):
     return np.all(np.linalg.eigvals(M) > 0)
@@ -172,24 +172,22 @@ class TestStateSpaceModel(unittest.TestCase):
                 ssm.compute_g_optimal_parameters()
 
     def test_EM_algorithm_in_linear_case(self):
-        n_sample = 50
+        n_sample = 20
         is_f_linear = True
         is_g_linear = True
         state_dim = 1
         output_dim = 1
-        input_dim = 1
         A = rand(1, 1)
         b = rand(1)
         C = rand(1, 1)
         d = rand(1)
-        Q = np.array([[0.03]])
-        R = np.array([[0.03]])
+        Q = np.array([[0.01]])
+        R = np.array([[0.01]])
         ssm = StateSpaceModel(
             is_f_linear=is_f_linear,
             is_g_linear=is_g_linear,
             state_dim=state_dim,
             output_dim=output_dim,
-            input_dim=input_dim,
             A=A,
             b=b,
             C=C,
@@ -197,14 +195,13 @@ class TestStateSpaceModel(unittest.TestCase):
             Q=Q,
             R=R
         )
-        ssm.input_sequence = rand(n_sample, 1)
         ssm.draw_sample(T=n_sample)
         ssm.plot_states_in_1D()
 
-        ssm.A = np.array([[0.5]])
-        ssm.b = np.array([0.5])
-        ssm.C = np.array([[0.5]])
-        ssm.d = np.array([0.5])
+        ssm.A[0, 0] += 0.1 * random()
+        ssm.b[0] += 0.1 * random()
+        ssm.C[0, 0] += 0.1 * random()
+        ssm.d[0] += 0.1 * random()
         ssm.learn_f_and_g_with_EM_algorithm()
         ssm.draw_sample(T=n_sample)
         ssm.plot_states_in_1D()
