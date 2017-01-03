@@ -102,13 +102,12 @@ class StateSpaceModel:
             print 'No rbf parameters provided for f, initialize them'
             self.initialize_f_rbf_parameters()
         if not self.is_f_linear and self.f_rbf_coeffs is None:
-            self.f_rbf_coeffs = [np.ones(self.state_dim) for _ in range(0, self.f_rbf_parameters['n_rbf'])]
-
+            self.f_rbf_coeffs = np.zeros((self.f_rbf_parameters['n_rbf'], self.state_dim))
         if not self.is_g_linear and self.g_rbf_parameters is None:
             print 'No rbf parameters provided for g, initialize them '
             self.initialize_g_rbf_parameters()
         if not self.is_g_linear and self.g_rbf_coeffs is None:
-            self.g_rbf_coeffs = [np.ones(self.output_dim) for _ in range(0, self.g_rbf_parameters['n_rbf'])]
+            self.g_rbf_coeffs = np.zeros((self.g_rbf_parameters['n_rbf'], self.state_dim))
 
     def get_rbf_parameters_for_state(self):
         '''
@@ -468,7 +467,7 @@ class StateSpaceModel:
 
                     Sigma = inv(PInv + SInv + SjInv)
                     mu = Sigma.dot(PInv.dot(x) + SInv.dot(c) + SjInv.dot(cj))
-                    delta = c.dot(SInv).dot(c) + cj.dot(SjInv).dot(c) + x.dot(PInv).dot(x) - mu.dot(Sigma).dot(mu)
+                    delta = c.dot(SInv).dot(c) + cj.dot(SjInv).dot(cj) + x.dot(PInv).dot(x) - mu.dot(Sigma).dot(mu)
                     beta = power(det(Sigma) * det(SInv) * det(SjInv) * det(PInv), 0.5) * exp(-0.5 * delta) / power(2 * np.pi, p)
 
                     PhiPhiT[i, j] += beta
@@ -498,6 +497,100 @@ class StateSpaceModel:
         Q = xxT - theta_f.dot(xPhiT.transpose())
 
         return (theta_f, Q)
+
+    def compute_g_optimal_parameters(self, use_smoothed_values=False):
+        T = len(self.output_sequence)
+        J = self.g_rbf_parameters['n_rbf'] if (not self.is_g_linear) else 0
+        p = self.state_dim
+        q = self.input_dim
+        n = self.output_dim
+        n_params = J+p+q+1
+
+        if (n_params > T-1):
+            raise Exception('More paramerers (' + str(n_params) + ') than values (' + str(T-1) +')')
+
+        yPhiT = np.zeros((n, J+p+q+1))
+        PhiPhiT = np.zeros((J+p+q+1, J+p+q+1))
+        yyT = np.zeros((n, n))
+
+        for t in range(0, T):
+            # simplify notations
+            u = self.input_sequence[t] if (q > 0) else None
+            y = self.output_sequence[t]
+
+            if (use_smoothed_values):
+                P = self.smoothed_state_covariance[t]
+                PInv = inv(P)
+                x = self.smoothed_state_means[t]
+            else:
+                P = self.filtered_state_covariance[t, 1]
+                PInv = inv(P)
+                x = self.filtered_state_means[t, 1]
+
+            # expectations involving only x
+            # PhiPhiT
+            PhiPhiT[J:J+p, J:J+p] += x[:, np.newaxis].dot(x[np.newaxis, :]) + P
+            PhiPhiT[J:J+p, J+p+q] += x
+            PhiPhiT[J+p+q, J:J+p] += x
+            PhiPhiT[J+p+q, J+p+q] += 1
+
+            # if input space dimension > 1
+            if (q > 0):
+                xuT = x[:, np.newaxis].dot(u[np.newaxis, :])
+                uuT = u[:, np.newaxis].dot(u[np.newaxis, :])
+
+                PhiPhiT[J:J+p, J+p:J+p+q] += xuT
+                PhiPhiT[J+p:J+p+q, J:J+p] += xuT.transpose()
+                PhiPhiT[J+p:J+p+q, J+p:J+p+q] += uuT
+                PhiPhiT[J+p:J+p+q, J+p+q] += u
+                PhiPhiT[J+p+q, J+p:J+p+q] += u
+
+            # yPhiT and yyT
+            yPhiT[:,J:J+p] += y[:, np.newaxis].dot(x[np.newaxis, :])
+            yPhiT[:,J+p+q] += y
+            yyT += y[:, np.newaxis].dot(y[np.newaxis, :])
+            if (q > 0):
+                yPhiT[:,J+p:J+p+q] += y[:, np.newaxis].dot(u[np.newaxis, :])
+
+            # expectations involving RBF
+            for j in range(0, J):
+                # simplify notatations
+                SInv = inv(self.f_rbf_parameters['width'][j])
+                c = self.f_rbf_parameters['centers'][j]
+
+                Sigma = inv(PInv + SInv)
+                mu = Sigma.dot(PInv.dot(x) + SInv.dot(c))
+                delta = c.dot(SInv).dot(c) + x.dot(PInv).dot(x) - mu.dot(Sigma).dot(mu)
+                beta = power(det(Sigma) * det(SInv) * det(PInv), 0.5) * exp(-0.5 * delta) / power(2 * np.pi, 0.5 * p)
+
+                PhiPhiT[J: J+p, j] += beta * mu
+                PhiPhiT[j, J: J+p] += beta * mu
+                PhiPhiT[J+p+q, j] += beta
+                PhiPhiT[j, J+p+q] += beta
+
+                if (q > 0):
+                    PhiPhiT[J+p: J+p+q, j] += beta * u
+                    PhiPhiT[j, J+p: J+p+q] += beta * u
+
+                yPhiT[:, j] +=  beta * y
+
+                # expectations with mu^{i,j}_t and beta^{i,j}_t
+                for k in range(j, J):
+                    SkInv = inv(self.f_rbf_parameters['width'][k])
+                    ck = self.f_rbf_parameters['centers'][k]
+
+                    Sigma = inv(PInv + SInv + SkInv)
+                    mu = Sigma.dot(PInv.dot(x) + SInv.dot(c) + SkInv.dot(ck))
+                    delta = c.dot(SInv).dot(c) + ck.dot(SkInv).dot(ck) + x.dot(PInv).dot(x) - mu.dot(Sigma).dot(mu)
+                    beta = power(det(Sigma) * det(SInv) * det(SkInv) * det(PInv), 0.5) * exp(-0.5 * delta) / power(2 * np.pi, p)
+
+                    PhiPhiT[j, k] += beta
+                    PhiPhiT[k, j] += beta
+
+        theta_g = yPhiT.dot(inv(PhiPhiT))
+        R = yyT - theta_g.dot(yPhiT.transpose())
+
+        return (theta_g, R)
 
     def initialize_g_with_factor_analysis(self):
         """
