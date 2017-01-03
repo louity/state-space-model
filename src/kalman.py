@@ -471,8 +471,11 @@ class StateSpaceModel:
                     delta = c.dot(SInv).dot(c) + cj.dot(SjInv).dot(cj) + x.dot(PInv).dot(x) - mu.dot(Sigma).dot(mu)
                     beta = power(det(Sigma) * det(SInv) * det(SjInv) * det(PInv), 0.5) * exp(-0.5 * delta) / power(2 * np.pi, p)
 
-                    PhiPhiT[i, j] += beta
-                    PhiPhiT[j, i] += beta
+                    if (i == j):
+                        PhiPhiT[i, i] += beta
+                    else:
+                        PhiPhiT[i, j] += beta
+                        PhiPhiT[j, i] += beta
 
                 # expectations with mu^i_{t,t+1} and beta^i_{t,t+1}
                 if (t < T-1):
@@ -590,8 +593,11 @@ class StateSpaceModel:
                     delta = c.dot(SInv).dot(c) + ck.dot(SkInv).dot(ck) + x.dot(PInv).dot(x) - mu.dot(Sigma).dot(mu)
                     beta = power(det(Sigma) * det(SInv) * det(SkInv) * det(PInv), 0.5) * exp(-0.5 * delta) / power(2 * np.pi, p)
 
-                    PhiPhiT[j, k] += beta
-                    PhiPhiT[k, j] += beta
+                    if (j == k):
+                        PhiPhiT[j, j] += beta
+                    else:
+                        PhiPhiT[j, k] += beta
+                        PhiPhiT[k, j] += beta
 
         theta_g = yPhiT.dot(inv(PhiPhiT))
         self.R = yyT - theta_g.dot(yPhiT.transpose())
