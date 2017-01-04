@@ -30,12 +30,14 @@ def check_matrix(M, shape, err_message='wrong matrix shape'):
         return M
 
 def rbf(rbf_value, rbf_center, rbf_width_inv, x):
-    '''
-    calcul h_i \rho_{i}(x) ou \rho_i est la RBF de parametres (rbf_center,rbf_width)
-    et ou h_i= rbf_value
-    '''
-    dim = rbf_center.size
-    K = 1.0 * det(rbf_width_inv) / power(2 * np.pi, dim / 2)
+    """
+    calcul h_i rho_{i}(x) où rho_i est la RBF de parametres (rbf_center,rbf_width)
+    """
+    if (rbf_center.size != x.size or rbf_width_inv.shape != (x.size, x.size)):
+        raise ValueError('Dimensions of rbf center and width do not match')
+
+    dim = x.size
+    K = sqrt(power(2 * np.pi, -dim) * det(rbf_width_inv))
     v = (x - rbf_center)
     rbf_term = exp(-0.5 * v.dot(rbf_width_inv).dot(v))
 
@@ -210,8 +212,9 @@ class StateSpaceModel:
     def compute_df_dx(self, x):  # derivative of f ne depend pas de (u_t)_1..T
         if x.size != self.state_dim:
             raise ValueError('x vector must have state dimension')
-
-        df = self.A
+        p = self.state_dim
+        df = np.zeros((p, p))
+        df += self.A
 
         if not self.is_f_linear:
             for i in range(0, self.f_rbf_parameters['n_rbf']):
@@ -225,8 +228,11 @@ class StateSpaceModel:
     def compute_dg_dx(self, x):   # derivative of g ne depend pas de (u_t)_1..T
         if x.size != self.state_dim:
             raise ValueError('x vector must have state dimension')
+        p = self.state_dim
+        n = self.output_dim
 
-        dg = self.C
+        dg = np.zeros((n, p))
+        dg += self.C
 
         if not self.is_g_linear:
             for i in range(0, self.g_rbf_parameters['n_rbf']):
@@ -700,7 +706,7 @@ class StateSpaceModel:
         if (not self.is_f_linear and self.is_g_linear):
             # make f linear and run a first EM to intialize
             self.is_f_linear = True
-            self.learn_f_and_g_with_EM_algorithm()
+            #self.learn_f_and_g_with_EM_algorithm()
             self.is_f_linear = False
 
             for EM_iteration in range(0, n_EM_iterations):
