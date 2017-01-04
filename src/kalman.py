@@ -710,9 +710,9 @@ class StateSpaceModel:
 
         if (not self.is_f_linear and self.is_g_linear):
             # make f linear and run a first EM to intialize
-            self.is_f_linear = True
+            #self.is_f_linear = True
             #self.learn_f_and_g_with_EM_algorithm()
-            self.is_f_linear = False
+            #self.is_f_linear = False
 
             for EM_iteration in range(0, n_EM_iterations):
                 # E-Step: use kalman filter only since extended kalman smoother does not work
@@ -720,7 +720,7 @@ class StateSpaceModel:
                 #M-Step
                 use_smoothed_values = False
                 self.compute_f_optimal_parameters(use_smoothed_values=use_smoothed_values)
-                self.compute_g_optimal_parameters(use_smoothed_values=use_smoothed_values)
+                #self.compute_g_optimal_parameters(use_smoothed_values=use_smoothed_values)
 
         if (self.is_f_linear and not self.is_g_linear):
             raise Exception('EM not implemented for f linear and g non-linear')
