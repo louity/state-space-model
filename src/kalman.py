@@ -475,7 +475,7 @@ class StateSpaceModel:
                 Sigma = inv(SigmaInv)
                 mu = Sigma.dot(PInv.dot(x) + SInv.dot(c))
                 delta = c.dot(SInv).dot(c) + x.dot(PInv).dot(x) - mu.dot(SigmaInv).dot(mu)
-                beta = power(2 * np.pi, -p / 2) * sqrt(det(Sigma) * det(SInv) * det(PInv)) * exp(-0.5 * delta)
+                beta = power(2 * np.pi, -0.5 * p) * sqrt(det(Sigma) * det(SInv) * det(PInv)) * exp(-0.5 * delta)
 
                 PhiPhiT[I: I+p, i] += beta * mu
                 PhiPhiT[i, I: I+p] += beta * mu
@@ -520,7 +520,7 @@ class StateSpaceModel:
                     Sigma = inv(SigmaInv)
                     mu = Sigma.dot(P2Inv.dot(x2) + np.concatenate((SInv.dot(c), np.zeros(p))))
                     delta = c.dot(SInv).dot(c) + x2.dot(P2Inv).dot(x2) - mu.dot(SigmaInv).dot(mu)
-                    beta = power(2 * np.pi, -p / 2) * sqrt(det(Sigma) * det(SInv) * det(P2Inv)) * exp(-0.5 * delta)
+                    beta = power(2 * np.pi, -0.5 * p) * sqrt(det(Sigma) * det(SInv) * det(P2Inv)) * exp(-0.5 * delta)
 
                     xPhiT[:, i] +=  beta * mu[p:2*p]
 
@@ -598,7 +598,7 @@ class StateSpaceModel:
                 Sigma = inv(SigmaInv)
                 mu = Sigma.dot(PInv.dot(x) + SInv.dot(c))
                 delta = c.dot(SInv).dot(c) + x.dot(PInv).dot(x) - mu.dot(SigmaInv).dot(mu)
-                beta = power(2 * np.pi, -p / 2) * sqrt(det(Sigma) * det(SInv) * det(PInv)) * exp(-0.5 * delta)
+                beta = power(2 * np.pi, -0.5 * p) * sqrt(det(Sigma) * det(SInv) * det(PInv)) * exp(-0.5 * delta)
 
                 PhiPhiT[J: J+p, j] += beta * mu
                 PhiPhiT[j, J: J+p] += beta * mu
