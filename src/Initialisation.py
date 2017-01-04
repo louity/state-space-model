@@ -85,10 +85,10 @@ def Ini_Parameters_1(Nbr_step_center, Size_noise, X_estimated,NumberCase):
         A=(getattr(Simu,'A'+str(NumberCase))+Noise1)*np.ones((1,1)),
         B=(getattr(Simu,'B'+str(NumberCase))+Noise1)*np.ones(1),
         b=(getattr(Simu,'b'+str(NumberCase))+Noise1)*np.ones(1),
-        Q=(Simu.Q+Noise1)*np.ones((1,1)),
+        Q=(getattr(Simu,'Q'+str(NumberCase))+Noise1)*np.ones((1,1)),
         C=getattr(Simu,'C'+str(NumberCase))+Noise2[:,np.newaxis],
         d=getattr(Simu,'d'+str(NumberCase))+Noise2,
-        R=Simu.R+Noise2[:,np.newaxis],
+        R=getattr(Simu,'R'+str(NumberCase))+Noise2[:,np.newaxis],
         f_rbf_parameters =f_rbf_parameters,
         f_rbf_coeffs =f_rbf_coeffs)
         
