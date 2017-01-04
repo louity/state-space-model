@@ -516,7 +516,7 @@ class StateSpaceModel:
                     xPhiT[:, i] +=  beta * mu[p:2*p]
 
         theta_f = xPhiT.dot(inv(PhiPhiT))
-        self.Q = xxT - theta_f.dot(xPhiT.transpose())
+        self.Q = 1.0 / (T - 1) * (xxT - theta_f.dot(xPhiT.transpose()))
 
         self.A = theta_f[:, I:I+p]
         self.b = theta_f[:, I+p+q]
@@ -618,7 +618,7 @@ class StateSpaceModel:
                         PhiPhiT[k, j] += beta
 
         theta_g = yPhiT.dot(inv(PhiPhiT))
-        self.R = yyT - theta_g.dot(yPhiT.transpose())
+        self.R = 1.0 / T * (yyT - theta_g.dot(yPhiT.transpose()))
 
         self.C = theta_g[:, J:J+p]
         self.d = theta_g[:, J+p+q]
