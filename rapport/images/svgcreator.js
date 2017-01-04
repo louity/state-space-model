@@ -7,16 +7,22 @@ jsdom.env(
   function (err, window) {
 
 
-    var inputs = true
+    var inputs = false
 
-    var width = 300;
-    var height = 200;
+    var width = 500;
+    var height = 300;
 
-    var input_height = height / 4;
-    var state_height = 2 * height / 4;
-    var output_height = 3 * height / 4;
 
-    var n_circle = 4
+    if (inputs) {
+      var input_height = height / 4;
+      var state_height = 2 * height / 4;
+      var output_height = 3 * height / 4;
+    } else {
+      var state_height = height / 3;
+      var output_height = 2 * height / 3;
+    }
+
+    var n_circle = 5
     var circle_spacing = width / (n_circle + 1)
     var circle_radius = 0.2 * circle_spacing
 
