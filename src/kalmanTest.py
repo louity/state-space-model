@@ -216,15 +216,14 @@ class TestStateSpaceModel(unittest.TestCase):
         b = 0.25 * np.ones(1)
         C = np.ones((1, 1))
         d = np.zeros(1)
-        Q = np.array([[0.01]])
-        R = np.array([[0.01]])
-
+        Q = np.array([[0.04]])
+        R = np.array([[0.04]])
         f_rbf_parameters = {
             'n_rbf': 2,
-            'centers': np.array([[0.4], [0.6]]),
-            'width': np.array([[[0.01]], [[0.01]]])
+            'centers': np.array([[-0.2], [0.2]]),
+            'width': np.array([[[0.02]], [[0.02]]])
         }
-        f_rbf_coeffs = np.array([[0.01], [-0.01]])
+        f_rbf_coeffs = np.array([[0.2], [-0.2]])
 
         ssm = StateSpaceModel(
             is_f_linear=is_f_linear,
