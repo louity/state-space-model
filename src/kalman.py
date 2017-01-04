@@ -129,7 +129,7 @@ class StateSpaceModel:
         self.is_f_linear = is_f_linear
         self.is_g_linear = is_g_linear
 
-        # if state di is one, place rbf uniformly
+        # if state dim is one, place rbf uniformly
         if (self.state_dim == 1):
             x_min = np.min(self.smoothed_state_means)
             x_max = np.max(self.smoothed_state_means)
@@ -471,9 +471,10 @@ class StateSpaceModel:
                 SInv = inv(self.f_rbf_parameters['width'][i])
                 c = self.f_rbf_parameters['centers'][i]
 
-                Sigma = inv(PInv + SInv)
+                SigmaInv = PInv + SInv
+                Sigma = inv(SigmaInv)
                 mu = Sigma.dot(PInv.dot(x) + SInv.dot(c))
-                delta = c.dot(SInv).dot(c) + x.dot(PInv).dot(x) - mu.dot(Sigma).dot(mu)
+                delta = c.dot(SInv).dot(c) + x.dot(PInv).dot(x) - mu.dot(SigmaInv).dot(mu)
                 beta = power(2 * np.pi, -p / 2) * sqrt(det(Sigma) * det(SInv) * det(PInv)) * exp(-0.5 * delta)
 
                 PhiPhiT[I: I+p, i] += beta * mu
@@ -490,9 +491,10 @@ class StateSpaceModel:
                     SjInv = inv(self.f_rbf_parameters['width'][j])
                     cj = self.f_rbf_parameters['centers'][j]
 
-                    Sigma = inv(PInv + SInv + SjInv)
+                    SigmaInv = PInv + SInv + SjInv
+                    Sigma = inv(SigmaInv)
                     mu = Sigma.dot(PInv.dot(x) + SInv.dot(c) + SjInv.dot(cj))
-                    delta = c.dot(SInv).dot(c) + cj.dot(SjInv).dot(cj) + x.dot(PInv).dot(x) - mu.dot(Sigma).dot(mu)
+                    delta = c.dot(SInv).dot(c) + cj.dot(SjInv).dot(cj) + x.dot(PInv).dot(x) - mu.dot(SigmaInv).dot(mu)
                     beta = power(2 * np.pi, -p) * sqrt(det(Sigma) * det(SInv) * det(SjInv) * det(PInv)) * exp(-0.5 * delta)
 
                     if (i == j):
@@ -514,9 +516,10 @@ class StateSpaceModel:
                     S2Inv[0:p,0:p] = SInv
 
                     x2 = np.concatenate((x, x_plus))
-                    Sigma = inv(P2Inv + S2Inv)
+                    SigmaInv = P2Inv + S2Inv
+                    Sigma = inv(SigmaInv)
                     mu = Sigma.dot(P2Inv.dot(x2) + np.concatenate((SInv.dot(c), np.zeros(p))))
-                    delta = c.dot(SInv).dot(c) + x2.dot(P2Inv).dot(x2) - mu.dot(Sigma).dot(mu)
+                    delta = c.dot(SInv).dot(c) + x2.dot(P2Inv).dot(x2) - mu.dot(SigmaInv).dot(mu)
                     beta = power(2 * np.pi, -p / 2) * sqrt(det(Sigma) * det(SInv) * det(P2Inv)) * exp(-0.5 * delta)
 
                     xPhiT[:, i] +=  beta * mu[p:2*p]
@@ -591,9 +594,10 @@ class StateSpaceModel:
                 SInv = inv(self.g_rbf_parameters['width'][j])
                 c = self.g_rbf_parameters['centers'][j]
 
-                Sigma = inv(PInv + SInv)
+                SigmaInv = PInv + SInv
+                Sigma = inv(SigmaInv)
                 mu = Sigma.dot(PInv.dot(x) + SInv.dot(c))
-                delta = c.dot(SInv).dot(c) + x.dot(PInv).dot(x) - mu.dot(Sigma).dot(mu)
+                delta = c.dot(SInv).dot(c) + x.dot(PInv).dot(x) - mu.dot(SigmaInv).dot(mu)
                 beta = power(2 * np.pi, -p / 2) * sqrt(det(Sigma) * det(SInv) * det(PInv)) * exp(-0.5 * delta)
 
                 PhiPhiT[J: J+p, j] += beta * mu
@@ -612,9 +616,10 @@ class StateSpaceModel:
                     SkInv = inv(self.g_rbf_parameters['width'][k])
                     ck = self.g_rbf_parameters['centers'][k]
 
-                    Sigma = inv(PInv + SInv + SkInv)
+                    SigmaInv = PInv + SInv + SkInv
+                    Sigma = inv(SigmaInv)
                     mu = Sigma.dot(PInv.dot(x) + SInv.dot(c) + SkInv.dot(ck))
-                    delta = c.dot(SInv).dot(c) + ck.dot(SkInv).dot(ck) + x.dot(PInv).dot(x) - mu.dot(Sigma).dot(mu)
+                    delta = c.dot(SInv).dot(c) + ck.dot(SkInv).dot(ck) + x.dot(PInv).dot(x) - mu.dot(SigmaInv).dot(mu)
                     beta = power(2 * np.pi, -p) * sqrt(det(Sigma) * det(SInv) * det(SkInv) * det(PInv)) * exp(-0.5 * delta)
 
                     if (j == k):
