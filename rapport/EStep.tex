@@ -11,9 +11,9 @@ In other words we want to compute the conditional probabilities :
 However,  if we use the non-linear dynamics equations with $f$ and $g$, we have no guarantees that, starting from a Gaussian probability for $x_1$, we will have a Gaussian probability for $x_{t}$, and the computations become intractable.
 \textbf{To solve this problem, the authors propose to linearize the dynamics equations (\ref{eq:A},\ref{eq:B}) by their first order Taylor expansion at each time step $t$ and at a well-chosen point for filtering ($\tilde{x}_t$) and for smoothing ($\dot{x}_t$) :}
 \begin{align*}
-  x_{t+1} &= f(\tilde{x}_t, u_t) + A_{\tilde{x}_t} (x_t - \tilde{x}_t) + w_t\\
+  x_{t+1} &= f(\tilde{x}_t, u_t) + A_{\tilde{x}_t} (x_t - \tilde{x}_t) + v_t\\
   A_t &= \frac{\partial f}{\partial x}(\tilde{x}_t, u_t)\\
-  y_t &= g(\tilde{x}_t, u_t) + C_{\tilde{x}_t} (x_t - \tilde{x}_t) + v_t\\
+  y_t &= g(\tilde{x}_t, u_t) + C_{\tilde{x}_t} (x_t - \tilde{x}_t) + w_t\\
   C_t &= \frac{\partial g}{\partial x}(\tilde{x}_t, u_t).\\
 \end{align*}
 
