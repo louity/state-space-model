@@ -11,7 +11,7 @@ At iteration $k$, in the M-step, we assume that the state sequence $(x_t)_{t=1 \
         \begin{array}{c} \hat{x}_{t \given T} \\ \hat{x}_{t+1 \given T} \end{array}
       \right],
       \left[
-        \begin{array}{cc} \hat{P}_{t \given T} & \hat{P}_{t,t+1 \given T}\\ \hat{P}_{t,t+1 \given T} & \hat{P}_{t+1 \given T} \end{array}
+        \begin{array}{cc} \hat{P}_{t \given T} & \hat{P}_{t,t+1 \given T}\\ \hat{P}_{t,t+1 \given T}^{\top} & \hat{P}_{t+1 \given T} \end{array}
       \right]
     \right), \  t=1 \ldots T-1\\
 \end{align*}
@@ -167,7 +167,7 @@ We begin with the simple ones :
 \begin{align*}
   \left< x' \mapsto x'\right>_{t+1} &= \hat{x}_{t+1 \given T}\\
   \left< x' \mapsto x'x'^{\top}\right>_{t+1} &= \hat{x}_{t+1 \given T}\hat{x}_{t+1 \given T}^{\top} + \hat{P}_{t+1 \given T}\\
-  \left< (x,x') \mapsto x'x^{\top}\right>_{t,t+1} &= \hat{x}_{t+1 \given T} \hat{x}_{t \given T}^{\top} + \hat{P}_{t,t+1 \given T}\\
+  \left< (x,x') \mapsto x'x^{\top}\right>_{t,t+1} &= \hat{x}_{t+1 \given T} \hat{x}_{t \given T}^{\top} + \hat{P}_{t,t+1 \given T}^{\top}\\
   \left< x \mapsto xx^{\top}\right>_{t} &= \hat{x}_{t \given T} \hat{x}_{t \given T}^{\top} + \hat{P}_{t \given T}\\
   \left< x \mapsto x\right>_{t} &= \hat{x}_{t \given T}\\
 \end{align*}
@@ -204,7 +204,7 @@ Finally, when we multiply the RBF function $\rho_i$ and $q_{t,t+1}$, we obtain a
 \begin{align*}
   \mathcal{P}_{t,t+1 \given T} &= 
     \left[
-      \begin{array}{cc} \hat{P}_{t \given T} & \hat{P}_{t,t+1 \given T}\\ \hat{P}_{t,t+1 \given T} & \hat{P}_{t+1 \given T} \end{array}
+      \begin{array}{cc} \hat{P}_{t \given T} & \hat{P}_{t,t+1 \given T}\\ \hat{P}_{t,t+1 \given T}^{\top} & \hat{P}_{t+1 \given T} \end{array}
     \right]
   \\
   \mathcal{X}_{t,t+1 \given T} &=
