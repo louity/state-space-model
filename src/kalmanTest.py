@@ -4,6 +4,7 @@ import unittest
 import numpy as np
 from kalman import StateSpaceModel
 from numpy.random import rand, random
+import matplotlib.pyplot as plt
 
 def is_pos_def(M):
     return np.all(np.linalg.eigvals(M) > 0)
@@ -177,12 +178,12 @@ class TestStateSpaceModel(unittest.TestCase):
         is_g_linear = True
         state_dim = 1
         output_dim = 1
-        A = rand(1, 1)
+        A = np.ones((1, 1))
         b = rand(1)
-        C = rand(1, 1)
+        C = np.ones((1, 1))
         d = rand(1)
-        Q = np.array([[0.01]])
-        R = np.array([[0.01]])
+        Q = np.array([[0.1]])
+        R = np.array([[0.1]])
         ssm = StateSpaceModel(
             is_f_linear=is_f_linear,
             is_g_linear=is_g_linear,
@@ -202,8 +203,11 @@ class TestStateSpaceModel(unittest.TestCase):
         ssm.b[0] += 0.1 * random()
         ssm.C[0, 0] += 0.1 * random()
         ssm.d[0] += 0.1 * random()
-        ssm.learn_f_and_g_with_EM_algorithm()
-        ssm.draw_sample(T=n_sample)
+        log_likelihood = ssm.learn_f_and_g_with_EM_algorithm(use_smoothed_values=False)
+        plt.figure(1)
+        plt.title('f and g linear. log-likelihood evolution during EM algorithm')
+        plt.plot(log_likelihood)
+        plt.show()
         ssm.plot_states_in_1D()
 
     def test_EM_algorithm_in_non_linear_case(self):
@@ -242,12 +246,15 @@ class TestStateSpaceModel(unittest.TestCase):
         ssm.draw_sample(T=n_sample)
         ssm.plot_states_in_1D()
 
-        ssm.A[0, 0] += 0.1 * random()
-        ssm.b[0] += 0.1 * random()
-        ssm.C[0, 0] += 0.1 * random()
-        ssm.d[0] += 0.1 * random()
-        ssm.learn_f_and_g_with_EM_algorithm()
-        ssm.draw_sample(T=n_sample)
+        #ssm.A[0, 0] += 0.1 * random()
+        #ssm.b[0] += 0.1 * random()
+        #ssm.C[0, 0] += 0.1 * random()
+        #ssm.d[0] += 0.1 * random()
+        log_likelihood = ssm.learn_f_and_g_with_EM_algorithm(use_smoothed_values=False)
+        plt.figure(1)
+        plt.title('f non-linear, g linear. log-likelihood evolution during EM algorithm')
+        plt.plot(log_likelihood)
+        plt.show()
         ssm.plot_states_in_1D()
 
 

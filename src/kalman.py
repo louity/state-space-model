@@ -699,14 +699,16 @@ class StateSpaceModel:
         self.R = R
         self.d = mu_y
 
-    def learn_f_and_g_with_EM_algorithm(self):
+    def learn_f_and_g_with_EM_algorithm(self, use_smoothed_values=None):
         n_EM_iterations = 20
 
         if (self.is_f_linear and self.is_g_linear):
-            use_smoothed_values = False
+            if (use_smoothed_values is None):
+                use_smoothed_values = False
             is_extended=False
         elif (not self.is_f_linear and self.is_g_linear):
-            use_smoothed_values = False
+            if (use_smoothed_values is None):
+                use_smoothed_values = False
             is_extended=True
             #self.initialize_g_with_factor_analysis()
         elif (self.is_f_linear and not self.is_g_linear):
