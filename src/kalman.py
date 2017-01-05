@@ -459,7 +459,7 @@ class StateSpaceModel:
 
             # xPhiT and xxT
             if (t < T-1):
-                xPhiT[:,I:I+p] += x_plus[:, np.newaxis].dot(x[np.newaxis, :]) + PCor
+                xPhiT[:,I:I+p] += x_plus[:, np.newaxis].dot(x[np.newaxis, :]) + PCor.transpose()
                 xPhiT[:,I+p+q] += x_plus
                 xxT += x_plus[:, np.newaxis].dot(x_plus[np.newaxis, :]) + P_plus
                 if (q > 0):
