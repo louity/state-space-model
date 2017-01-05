@@ -748,5 +748,30 @@ class StateSpaceModel:
         X = np.linspace(min, max, 100)
         plt.plot(X, np.vectorize(f)(X),'r-')
         plt.plot(X, X, 'r--')
-        plt.title('F : x -> ' + str(self.A[0, 0]) + ' * x + ' + str(self.b[0]))
+        plt.title('states evolution. f : x -> ' + str(self.A[0, 0]) + ' * x + ' + str(self.b[0]))
+        plt.show()
+
+    def plot_states_outputs_in_1D(self):
+        if (self.state_dim != 1 or self.output_dim != 1):
+            raise Exception('state-output plots can be only in 1D')
+        plt.clf()
+        plt.figure(1)
+        min = 0
+        max = 1
+
+        if (self.state_sequence is not None):
+            states = self.state_sequence
+            outputs = self.output_sequence
+            T = len(states)
+            plt.scatter(states, outputs)
+            min = np.min(states)
+            max = np.max(states)
+
+        def g(x):
+            return self.compute_g(np.array([x]))[0]
+
+        X = np.linspace(min, max, 100)
+        plt.plot(X, np.vectorize(g)(X),'r-')
+        plt.plot(X, X, 'r--')
+        plt.title('state-output. g : x -> ' + str(self.C[0, 0]) + ' * x + ' + str(self.d[0]))
         plt.show()
