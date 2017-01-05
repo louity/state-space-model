@@ -174,15 +174,17 @@ class StateSpaceModel:
     def compute_f(self, x, u=None):
         if x.size != self.state_dim:
             raise ValueError('x vector must have state dimension')
-        elif u is None:
-            u = np.zeros(self.input_dim)
-        elif u.size != self.input_dim:
+        if (u is not None and u.size != self.input_dim):
             raise ValueError('u vector must have state dimension')
 
-        f = self.A.dot(x) + self.B.dot(u) if (self.input_dim > 0) else self.A.dot(x)
+        f = self.A.dot(x) + self.b
+
+        if (u is not None):
+             f += self.B.dot(u)
 
         if not self.is_f_linear:
-            for i in range(0, self.f_rbf_parameters['n_rbf']):
+            I = self.f_rbf_parameters['n_rbf']
+            for i in range(0, I):
                 center = self.f_rbf_parameters['centers'][i]
                 width = self.f_rbf_parameters['width'][i]
                 value = self.f_rbf_coeffs[i]
@@ -193,18 +195,20 @@ class StateSpaceModel:
     def compute_g(self, x, u=None):
         if x.size != self.state_dim:
             raise ValueError('x vector must have state dimension')
-        elif u is None:
-            u = np.zeros(self.input_dim)
-        elif u.size != self.input_dim:
+        elif (u is not None and u.size != self.input_dim):
             raise ValueError('u vector must have state dimension')
 
-        g = self.C.dot(x) + self.D.dot(u) if (self.input_dim > 0) else self.C.dot(x)
+        g = self.C.dot(x) + self.d
+
+        if (u is not None):
+            g += self.D.dot(u)
 
         if not self.is_g_linear:
-            for i in range(0, self.g_rbf_parameters['n_rbf']):
-                center = self.g_rbf_parameters['centers'][i]
-                width = self.g_rbf_parameters['width'][i]
-                value = self.g_rbf_coeffs[i]
+            J = self.g_rbf_parameters['n_rbf']
+            for j in range(0, J):
+                center = self.g_rbf_parameters['centers'][j]
+                width = self.g_rbf_parameters['width'][j]
+                value = self.g_rbf_coeffs[j]
                 g += rbf(value, center, inv(width), x)
 
         return g
@@ -284,42 +288,44 @@ class StateSpaceModel:
         self.filtered_state_correlation = np.zeros((T-1, self.state_dim, self.state_dim)) # stock P_{t,t+1 | t} : correlation between states /!\ length = T-1
         for t in range(0, T):
             y = self.output_sequence[t]
-            u = self.input_sequence[t] if (self.input_dim > 0) else None
-            # pour le extended kalman filter, on change les valeurs de A, b, C, d a chaque étape
-            if is_extended:
-                # calcul des points de linéarisation x_tilde, u_f et u_g
-                u_g = u
+            if (self.input_dim > 0):
+                u_g = self.input_sequence[t]
+                d = self.d + D.dot(u_g)
+
+                if t > 0:
+                    u_f = self.input_sequence[t-1]
+                    b = self.b + B.dot(u_f)
+            else:
+                u_f = None
+                u_g = None
+
+            if is_extended: # calcul du points de linéarisation x_tilde et modification de A, C et b, d
                 if t == 0:
                     x_tilde = np.zeros(self.state_dim)
-                    u_f = None
                 else:
                     x_tilde = self.filtered_state_means[t-1, 1]
-                    u_f = self.input_sequence[t-1] if (self.input_dim > 0) else None
-
                 if not self.is_f_linear:
-                    A = self.A + self.compute_df_dx(x_tilde)
+                    A = self.compute_df_dx(x_tilde)
                     AT = np.transpose(A)
-                    b = self.b + self.compute_f(x_tilde, u_f)
+                    b = self.compute_f(x_tilde, u_f) - A.dot(x_tilde)
                 if not self.is_g_linear:
-                    C = self.C + self.compute_dg_dx(x_tilde)
+                    C = self.compute_dg_dx(x_tilde)
                     CT = np.transpose(C)
-                    d = self.d + self.compute_g(x_tilde, u_g)
+                    d = self.compute_g(x_tilde, u_g) - C.dot(x_tilde)
 
-            if t == 0:
-                #initialization
+            # calcul des moyennes et covariances
+            if t == 0: # initialization
                 x_1_0 = np.zeros(self.state_dim)
                 P_1_0 = self.Sigma_0
             else:
-                Bu = B.dot(self.input_sequence[t-1]) if (self.input_dim > 0) else np.zeros(self.state_dim)
-                x_1_0 = A.dot(self.filtered_state_means[t-1, 1]) + Bu + b
+                x_1_0 = A.dot(self.filtered_state_means[t-1, 1]) + b
                 P_1_0 = A.dot(self.filtered_state_covariance[t-1, 1]).dot(AT) + Q
                 P_t_comma_t_plus_1_t = self.filtered_state_covariance[t-1, 1].dot(AT)  # voir notation pdf section KF
                 self.filtered_state_correlation[t-1] = P_t_comma_t_plus_1_t
 
-            Du = D.dot(u) if (self.input_dim > 0) else np.zeros(self.output_dim)
             # kalman gain matrix
             K = P_1_0.dot(CT).dot(inv(C.dot(P_1_0).dot(CT) + R))
-            x_1_1 = x_1_0 + K.dot(y - (C.dot(x_1_0) + Du + d))
+            x_1_1 = x_1_0 + K.dot(y - (C.dot(x_1_0) + d))
             P_1_1 = P_1_0 - K.dot(C).dot(P_1_0)
 
             self.filtered_state_means[t, 0] = x_1_0
@@ -347,9 +353,8 @@ class StateSpaceModel:
 
         for t in range(T-1, -1, -1):
             if is_extended:
-                x_dot = self.filtered_state_means[t, 1]  # On linéarise autour de la moyenne renvoyé par Kalman Filter
-                A = self.A + self.compute_df_dx(x_dot)
-                AT = np.transpose(A)
+                x_dot = self.filtered_state_means[t, 1]  # On linéarise autour de la moyenne renvoyée par le Kalman Filter
+                AT = np.transpose(self.compute_df_dx(x_dot))
 
             if t == T-1:  # initialisation en backward
                 x_t_T = self.filtered_state_means[t, 1]
@@ -702,7 +707,7 @@ class StateSpaceModel:
             is_extended=False
         elif (not self.is_f_linear and self.is_g_linear):
             use_smoothed_values = False
-            is_extended=False
+            is_extended=True
             #self.initialize_g_with_factor_analysis()
         elif (self.is_f_linear and not self.is_g_linear):
             raise Exception('EM not implemented for f linear and g non-linear')
@@ -716,7 +721,7 @@ class StateSpaceModel:
             self.kalman_smoothing(is_extended=False)
             #M-Step
             self.compute_f_optimal_parameters(use_smoothed_values=use_smoothed_values)
-            self.compute_g_optimal_parameters(use_smoothed_values=use_smoothed_values)
+            #self.compute_g_optimal_parameters(use_smoothed_values=use_smoothed_values)
             log_likelihood[EM_iteration] = self.compute_outputs_log_likelihood(use_smoothed_values=use_smoothed_values)
 
         return log_likelihood
