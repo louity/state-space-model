@@ -1,7 +1,7 @@
 # coding: utf8
 import numpy as np
 import matplotlib.pyplot as plt
-from numpy import power, exp, sqrt
+from numpy import power, exp, sqrt, log
 from numpy.linalg import inv, det
 from numpy.random import multivariate_normal as mv_norm
 import random
@@ -698,34 +698,28 @@ class StateSpaceModel:
         n_EM_iterations = 20
 
         if (self.is_f_linear and self.is_g_linear):
+            use_smoothed_values = False
+            is_extended=False
+        elif (not self.is_f_linear and self.is_g_linear):
+            use_smoothed_values = False
+            is_extended=False
             #self.initialize_g_with_factor_analysis()
-
-            for EM_iteration in range(0, n_EM_iterations):
-                # E-Step
-                self.kalman_smoothing(is_extended=False)
-                #M-Step
-                use_smoothed_values = False
-                self.compute_f_optimal_parameters(use_smoothed_values=use_smoothed_values)
-                self.compute_g_optimal_parameters(use_smoothed_values=use_smoothed_values)
-
-        if (not self.is_f_linear and self.is_g_linear):
-            # make f linear and run a first EM to intialize
-            #self.is_f_linear = True
-            #self.learn_f_and_g_with_EM_algorithm()
-            #self.is_f_linear = False
-
-            for EM_iteration in range(0, n_EM_iterations):
-                # E-Step: use kalman filter only since extended kalman smoother does not work
-                self.kalman_filtering(is_extended=True)
-                #M-Step
-                use_smoothed_values = False
-                self.compute_f_optimal_parameters(use_smoothed_values=use_smoothed_values)
-                #self.compute_g_optimal_parameters(use_smoothed_values=use_smoothed_values)
-
-        if (self.is_f_linear and not self.is_g_linear):
+        elif (self.is_f_linear and not self.is_g_linear):
             raise Exception('EM not implemented for f linear and g non-linear')
-        if (not self.is_f_linear and not self.is_g_linear):
+        elif (not self.is_f_linear and not self.is_g_linear):
             raise Exception('EM not implemented for f non-linear and g non-linear')
+
+        log_likelihood = np.zeros(n_EM_iterations)
+
+        for EM_iteration in range(0, n_EM_iterations):
+            # E-Step
+            self.kalman_smoothing(is_extended=False)
+            #M-Step
+            self.compute_f_optimal_parameters(use_smoothed_values=use_smoothed_values)
+            self.compute_g_optimal_parameters(use_smoothed_values=use_smoothed_values)
+            log_likelihood[EM_iteration] = self.compute_outputs_log_likelihood(use_smoothed_values=use_smoothed_values)
+
+        return log_likelihood
 
     def plot_states_in_1D(self):
         if (self.state_dim != 1):
@@ -775,3 +769,32 @@ class StateSpaceModel:
         plt.plot(X, X, 'r--')
         plt.title('state-output. g : x -> ' + str(self.C[0, 0]) + ' * x + ' + str(self.d[0]))
         plt.show()
+
+    def compute_outputs_log_likelihood(self, use_smoothed_values=False):
+        outputs = self.output_sequence
+        T = len(outputs)
+        n = self.output_dim
+        log_likelihood = 0
+        R = self.R
+        C = self.C
+        CT = C.transpose()
+
+        for t in range(0, T):
+            y = outputs[t]
+
+            if (use_smoothed_values):
+                mu_x = self.smoothed_state_means[t]
+                Sigma_x = self.smoothed_state_means[t]
+            else:
+                mu_x = self.filtered_state_means[t, 1]
+                Sigma_x = self.filtered_state_covariance[t, 1]
+
+            if (not self.is_g_linear):
+                C = C + self.compute_dg_dx(mu_x)
+
+            mu_y = self.compute_g(mu_x)
+            Sigma_y = C.dot(Sigma_x).dot(CT) + R
+
+            log_likelihood += -0.5 * n * log(2 * np.pi) - 0.5 * log(det(Sigma_y)) - 0.5 * (y - mu_y).dot(inv(Sigma_y)).dot(mu_y)
+
+        return log_likelihood
