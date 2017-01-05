@@ -77,20 +77,17 @@ We define $\tilde{x}_t$ as following :
   \tilde{x}_1 &= \hat{x}_{1 \given 0}\\
   \tilde{x}_{t+1} &= f(\hat{x}_{t \given t}, u_t)\\
 \end{align*}
-Then, in the recursion formula, we just have to replace the matrices $A$ and $C$  by the matrices $A_t$ and $C_t$ :
+Then, the dynamics become :
 \begin{align*}
-  A_t &= \frac{\partial f}{\partial x}(\tilde{x}_t, u_t)\\
-  C_t &= \frac{\partial g}{\partial x}(\tilde{x}_t, u_t)\\
+  A_t &= \frac{\partial f}{\partial x}(\tilde{x}_t, u_t) = A + \sum_{i=1}^I \rho_i(\tilde{x}_t) h_i (\tilde{x}_t - c_i)^{\top} S_i^{-1}\\
+  C_t &= \frac{\partial g}{\partial x}(\tilde{x}_t, u_t) = C + \sum_{j=1}^J \rho'_j(\tilde{x}_t) k_j (\tilde{x}_t - c'_i)^{\top} {S'_j}^{-1}\\
+  x_{t+1} &= A_{t} x_t + (f(\tilde{x}_t, u_t) - A_{t} \tilde{x}_t) + v_t\\
+  y_t &= C_{t} x_t + (g(\tilde{x}_t, u_t) - C_{t}  \tilde{x}_t) + w_t\\
 \end{align*}
-that we can compute in terms of our parameters $\theta_f^{(k-1)} = \left( h_1, \ldots , h_I, A, B, b \right)$ and $\theta_g^{(k-1)} = \left( k_1, \ldots , k_J, C, D, d \right)$ and of the centers and width of our RBF functions $(c_1, S_1, \ldots ,c_I, S_I, c'_1, S'_1, \ldots , c'_J, S'_J)$:
+in the recursion formula, we just have to replace the matrices $A$ and $C$ by the matrices $A_t$ and $C_t$  and we replace the vectors $b$ and $d$ by the vectors $b_t$ and $d_t$ :
 \begin{align*}
-  A_t &= A + \sum_{i=1}^I \rho_i(\tilde{x}_t) h_i (\tilde{x}_t - c_i)^{\top} S_i^{-1}\\
-  C_t &= C + \sum_{j=1}^J \rho'_j(\tilde{x}_t) k_j (\tilde{x}_t - c'_i)^{\top} {S'_j}^{-1}\\
-\end{align*}
-and we replace the vectors $b$ and $d$ by the vectors $b_t$ and $d_t$ :
-\begin{align*}
-  b_t &= b + f(\tilde{x}_t, u_t)\\
-  d_t &= d + g(\tilde{x}_t, u_t)\\
+  b_t &= f(\tilde{x}_t, u_t) - A_{\tilde{x}_t} \tilde{x}_t\\
+  d_t &= g(\tilde{x}_t, u_t) - C_{\tilde{x}_t} \tilde{x}_t\\
 \end{align*}
 and we get the conditionnal probabilities of interest :
 \begin{align*}
