@@ -509,7 +509,7 @@ class StateSpaceModel:
                     P2[0:p,0:p] = P
                     P2[p:2*p,p:2*p] = P_plus
                     P2[0:p,p:2*p] = PCor
-                    P2[p:2*p,0:p] = PCor
+                    P2[p:2*p,0:p] = PCor.transpose()
                     P2Inv = inv(P2)
 
                     S2Inv = np.zeros((2*p, 2*p))
