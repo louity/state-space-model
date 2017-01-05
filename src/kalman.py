@@ -800,6 +800,6 @@ class StateSpaceModel:
             mu_y = self.compute_g(mu_x)
             Sigma_y = C.dot(Sigma_x).dot(CT) + R
 
-            log_likelihood += -0.5 * n * log(2 * np.pi) - 0.5 * log(det(Sigma_y)) - 0.5 * (y - mu_y).dot(inv(Sigma_y)).dot(mu_y)
+            log_likelihood += -0.5 * n * log(2 * np.pi) - 0.5 * log(det(Sigma_y)) - 0.5 * (y - mu_y).dot(inv(Sigma_y)).dot(y - mu_y)
 
         return log_likelihood
