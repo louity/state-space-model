@@ -6,49 +6,9 @@ from numpy.linalg import inv, det
 from numpy.random import multivariate_normal as mv_norm
 import random
 import math
+import utils
 
 DEFAULT_N_RBF = 10
-
-def check_vector(v, size, err_message='wrong vector size'):
-    if v is None:
-        v = np.zeros(size)
-        return v
-    elif v.size != size:
-        raise ValueError(err_message)
-    else:
-        return v
-
-def check_matrix(M, shape, err_message='wrong matrix shape'):
-    if M is None:
-        M = np.zeros(shape) # Pourquoi pas un np.eye(shape) ? fonctionne avec matrice rectangulaire aussi
-        for i in range(0, min(shape)):
-            M[i, i] = 1.0
-        return M
-    elif M.shape != shape:
-        raise ValueError(err_message)
-    else:
-        return M
-
-def rbf(rbf_value, rbf_center, rbf_width_inv, x):
-    """
-    calcul h_i rho_{i}(x) où rho_i est la RBF de parametres (rbf_center,rbf_width)
-    """
-    if (rbf_center.size != x.size or rbf_width_inv.shape != (x.size, x.size)):
-        raise ValueError('Dimensions of rbf center and width do not match')
-
-    dim = x.size
-    K = sqrt(power(2 * np.pi, -dim) * det(rbf_width_inv))
-    v = (x - rbf_center)
-    rbf_term = exp(-0.5 * v.dot(rbf_width_inv).dot(v))
-
-    return K * rbf_value * rbf_term
-
-def rbf_derivative(rbf_value, rbf_center, rbf_width_inv, x):
-    rbf_vector = rbf(rbf_value, rbf_center, rbf_width_inv, x)[:, np.newaxis]
-    v = (x - rbf_center)[np.newaxis, :]
-
-    return rbf_vector.dot(v).dot(rbf_width_inv)
-
 
 class StateSpaceModel:
     """
@@ -81,16 +41,16 @@ class StateSpaceModel:
         else:
             self.output_dim = output_dim
 
-        self.b = check_vector(b, self.state_dim, 'vector b size must be equal to state_dim')
-        self.d = check_vector(d, self.output_dim, 'vector d size must de equal to output_dim')
+        self.b = utils.check_vector(b, self.state_dim, 'vector b size must be equal to state_dim')
+        self.d = utils.check_vector(d, self.output_dim, 'vector d size must de equal to output_dim')
 
-        self.Sigma_0 = check_matrix(Sigma_0, (self.state_dim, self.state_dim), 'matrix Sigma_0 shape must be equal to self.state_dim')
-        self.A = check_matrix(A, (self.state_dim, self.state_dim), 'matrix A shape must equal to state_dim x state_dim')
-        self.B = check_matrix(B, (self.state_dim, self.input_dim), 'matrix B shape must equal to state_dim x input_dim') if (self.input_dim > 0) else None
-        self.Q = check_matrix(Q, (self.state_dim, self.state_dim), 'matrix Q shape must equal to state_dim x state_dim')
-        self.C = check_matrix(C, (self.output_dim, self.state_dim), 'matrix C shape must equal to output_dim x state_dim')
-        self.D = check_matrix(D, (self.output_dim, self.input_dim), 'matrix D shape must equal to output_dim x input_dim') if (self.input_dim > 0) else None
-        self.R = check_matrix(R, (self.output_dim, self.output_dim), 'matrix R shape must equal to self.output_dim')
+        self.Sigma_0 = utils.check_matrix(Sigma_0, (self.state_dim, self.state_dim), 'matrix Sigma_0 shape must be equal to self.state_dim')
+        self.A = utils.check_matrix(A, (self.state_dim, self.state_dim), 'matrix A shape must equal to state_dim x state_dim')
+        self.B = utils.check_matrix(B, (self.state_dim, self.input_dim), 'matrix B shape must equal to state_dim x input_dim') if (self.input_dim > 0) else None
+        self.Q = utils.check_matrix(Q, (self.state_dim, self.state_dim), 'matrix Q shape must equal to state_dim x state_dim')
+        self.C = utils.check_matrix(C, (self.output_dim, self.state_dim), 'matrix C shape must equal to output_dim x state_dim')
+        self.D = utils.check_matrix(D, (self.output_dim, self.input_dim), 'matrix D shape must equal to output_dim x input_dim') if (self.input_dim > 0) else None
+        self.R = utils.check_matrix(R, (self.output_dim, self.output_dim), 'matrix R shape must equal to self.output_dim')
 
         self.f_rbf_parameters = f_rbf_parameters
         self.g_rbf_parameters = g_rbf_parameters
@@ -188,7 +148,7 @@ class StateSpaceModel:
                 center = self.f_rbf_parameters['centers'][i]
                 width = self.f_rbf_parameters['width'][i]
                 value = self.f_rbf_coeffs[i]
-                f += rbf(value, center, inv(width), x)
+                f += utils.rbf(value, center, inv(width), x)
 
         return f
 
@@ -209,7 +169,7 @@ class StateSpaceModel:
                 center = self.g_rbf_parameters['centers'][j]
                 width = self.g_rbf_parameters['width'][j]
                 value = self.g_rbf_coeffs[j]
-                g += rbf(value, center, inv(width), x)
+                g += utils.rbf(value, center, inv(width), x)
 
         return g
 
@@ -225,7 +185,7 @@ class StateSpaceModel:
                 center = self.f_rbf_parameters['centers'][i]
                 width = self.f_rbf_parameters['width'][i]
                 value = self.f_rbf_coeffs[i]
-                df += rbf_derivative(value, center, inv(width), x)
+                df += utils.rbf_derivative(value, center, inv(width), x)
 
         return df
 
@@ -243,7 +203,7 @@ class StateSpaceModel:
                 center = self.g_rbf_parameters['centers'][i]
                 width = self.g_rbf_parameters['width'][i]
                 value = self.g_rbf_coeffs[i]
-                dg += rbf_derivative(value, center, inv(width), x)
+                dg += utils.rbf_derivative(value, center, inv(width), x)
 
         return dg
 
