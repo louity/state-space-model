@@ -610,6 +610,7 @@ class StateSpaceModel:
 	    Se rappeler que l'on impose a Q d'etre initialisée a l'identite pour ce qui suit...
             initialize the matrix C, the vector d  and the covariance matrix R involved in the function g with factor analysis
             implicitely x_{k+1}=w_k\sim N(0,I_p) and y_k=Cx_k+d+v_k
+	    Il faut aussi renvoyer quelque chose pour les states
         """
         T = len(self.output_sequence)
         n_EM_iterations = 20
