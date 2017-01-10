@@ -11,18 +11,20 @@ import kalman
 '''
 On va simuler le modele x_{k+1}~N(0,1) et y_k=Cx_k+d+v_k avec x de dim 1, y de dim 2, T=100, d=(1 3) C= [1 2]^T et R=diag(0.1 0.4)
 '''
-T=10
+T=200
 C_true =  np.array([[1],[2]])
 d_true =  np.array([1, 3])
 R_true =  np.array([[0.1 ,0] ,[0 ,0.4]])
 
-y_output = np.zeros((T,2))
 #x_true = np.random.normal(0, 1, size=(T,1))
+
 x_true = np.random.multivariate_normal([0], np.array([[1]]), size=T)#matrice Tx1
 
-w = np.random.multivariate_normal([0,0], R_true, size=(T,2))
+random.seed(10)
+w = np.random.multivariate_normal([0,0], R_true, size=T)
+print(w[0,0])
 
-y_output = C_true.dot(x_true)#+d_true[:,np.newaxis]#+w
+y_output = x_true.dot(transpose(C_true))+d_true[np.newaxis,:]+w
 
 
 
@@ -42,6 +44,8 @@ ssm=kalman.StateSpaceModel(
 ssm.output_sequence=y_output
 
 ssm.initialize_f_with_factor_analysis()
+
+x_learn=ssm.state_sequence
 
 print(ssm.C)
 
