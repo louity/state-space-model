@@ -24,7 +24,7 @@ random.seed(10)
 w = np.random.multivariate_normal([0,0], R_true, size=T)
 print(w[0,0])
 
-y_output = x_true.dot(transpose(C_true))+d_true[np.newaxis,:]+w
+y_output = x_true.dot(np.transpose(C_true))+d_true[np.newaxis,:]+w
 
 
 
@@ -36,9 +36,9 @@ ssm=kalman.StateSpaceModel(
 	output_dim=2,
 	Sigma_0=np.ones((1,1)),# je ne sais pas quoi en faire pour l'instant
 	Q=np.ones((1,1)),
-	C=np.array([[12],[21]]),
-	d=np.array([0, 2]),
-	R=np.array([[1 , 0],[0 , 1]])
+	C=np.array([[10],[2]]),
+	d=np.array([1, 3]),
+	R=np.array([[0.1 , 0],[0 , 0.4]])
 	)
 
 ssm.output_sequence=y_output
