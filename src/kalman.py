@@ -603,9 +603,10 @@ class StateSpaceModel:
         if (q > 0):
             self.D = theta_g[:,J+p:J+p+q]
 
-    def initialize_g_with_factor_analysis(self):
+    def initialize_f_with_factor_analysis(self):
         """
             initialize the matrix C, the vector d  and the covariance matrix R involved in the function g with factor analysis
+            implicitely x_{k+1}=w_k\sim N(0,I_p) and y_k=Cx_k+d+v_k
         """
         T = len(self.output_sequence)
         n_EM_iterations = 20
@@ -621,7 +622,7 @@ class StateSpaceModel:
         # compute the y mean
         mu_y = np.mean(self.output_sequence)
 
-        # to stores expecations and variances of x_t, t=1...T
+        # to stores expectations and variances of x_t under (y) and former parameters, t=1...T
         E_x = np.zeros((T, p))
         E_xxT = np.zeros((T, p, p))
 
