@@ -605,6 +605,9 @@ class StateSpaceModel:
 
     def initialize_f_with_factor_analysis(self):
         """
+	    Attention C,R et d sont initialise par defaut
+	    Q est aussi initialise par defaut
+	    Se rappeler que l'on impose a Q d'etre initialisée a l'identite pour ce qui suit...
             initialize the matrix C, the vector d  and the covariance matrix R involved in the function g with factor analysis
             implicitely x_{k+1}=w_k\sim N(0,I_p) and y_k=Cx_k+d+v_k
         """
@@ -659,6 +662,7 @@ class StateSpaceModel:
         self.C = C
         self.R = R
         self.d = mu_y
+
 
     def learn_f_and_g_with_EM_algorithm(self, use_smoothed_values=None):
         n_EM_iterations = 20
