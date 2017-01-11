@@ -634,9 +634,12 @@ class StateSpaceModel:
         # to stores expectations and variances of x_t under (y) and former parameters, t=1...T
         E_x = np.zeros((T, p))
         E_xxT = np.zeros((T, p, p))
+        
+        self.Factor_likelihood= np.zeros((n_EM_iterations,1))
 
         # EM algorithm
         for EM_iteration in range(0, n_EM_iterations):
+            Expected_complete_likelihood=T/2*log(det(R))
             #E-Step
             for t in range(0, T):
                 y_t = self.output_sequence[t]
@@ -651,18 +654,24 @@ class StateSpaceModel:
             xxT = np.sum(E_xxT, axis=0)
 
             for t in range(0, T):
+                
                 y_t = self.output_sequence[t][:, np.newaxis]
                 x_t = E_x[t][:, np.newaxis]
 
                 yxT = yxT + y_t.dot(x_t.transpose())
                 yyT = yyT + y_t.dot(y_t.transpose())
+                
+                Expected_complete_likelihood+= -0.5*np.trace(inv(R).dot((y_t-C.dot(x_t)).dot((y_t-C.dot(x_t)).transpose()) ))
 
             xyT = yxT.transpose()
             C = yxT.dot(inv(xxT))
             R = np.diag(np.diag(yyT - C.dot(xyT)) / T)
-
+            
+            
             CT = C.transpose()
             RInv = inv(R)
+            
+            self.Factor_likelihood[EM_iteration]=Expected_complete_likelihood
 
         # set computed values
         self.C = C

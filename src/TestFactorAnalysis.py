@@ -11,7 +11,7 @@ import kalman
 '''
 On va simuler le modele x_{k+1}~N(0,1) et y_k=Cx_k+d+v_k avec x de dim 1, y de dim 2, T=100, d=(1 3) C= [1 2]^T et R=diag(0.1 0.4)
 '''
-T=300
+T=1000
 C_true =  np.array([[1],[2]])
 d_true =  np.array([1, 3])
 R_true =  np.array([[0.1 ,0] ,[0 ,0.4]])
@@ -36,9 +36,9 @@ ssm=kalman.StateSpaceModel(
 	output_dim=2,
 	Sigma_0=np.ones((1,1)),# je ne sais pas quoi en faire pour l'instant
 	Q=np.ones((1,1)),
-	C=np.array([[1.1],[2.1]]),
-	d=np.array([1, 3]),
-	R=np.array([[0.1 , 0],[0 , 0.4]])
+	C=np.array([[10.1],[2.1]]),
+	d=np.array([10, 3]),
+	R=np.array([[0.1 , 2],[7 , 4]])
 	)
 
 ssm.output_sequence=y_output
@@ -54,3 +54,6 @@ plt.plot(range(T),x_learn[:,0])
 plt.figure(2)
 plt.plot(range(T),x_true[:,0])
 
+#la likelihood est croissante
+likeli=ssm.Factor_likelihood
+plot(range(30),likeli[:,0])
