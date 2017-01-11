@@ -203,12 +203,13 @@ class TestStateSpaceModel(unittest.TestCase):
         ssm.b[0] += 0.1 * random()
         ssm.C[0, 0] += 0.1 * random()
         ssm.d[0] += 0.1 * random()
-        log_likelihood = ssm.learn_f_and_g_with_EM_algorithm(use_smoothed_values=False)
+        use_smoothed_values = False
+        log_likelihood = ssm.learn_f_and_g_with_EM_algorithm(use_smoothed_values=use_smoothed_values)
         plt.figure(1)
         plt.title('f and g linear. log-likelihood evolution during EM algorithm')
         plt.plot(log_likelihood)
         plt.show()
-        ssm.plot_states_in_1D()
+        ssm.plot_estimmated_states_in_1D(use_smoothed_values=use_smoothed_values)
 
     def test_EM_algorithm_in_non_linear_case(self):
         n_sample = 50
@@ -220,8 +221,8 @@ class TestStateSpaceModel(unittest.TestCase):
         b = 0.25 * np.ones(1)
         C = np.ones((1, 1))
         d = np.zeros(1)
-        Q = np.array([[0.04]])
-        R = np.array([[0.04]])
+        Q = np.array([[0.01]])
+        R = np.array([[0.01]])
         f_rbf_parameters = {
             'n_rbf': 2,
             'centers': np.array([[-0.2], [0.2]]),
@@ -250,12 +251,13 @@ class TestStateSpaceModel(unittest.TestCase):
         #ssm.b[0] += 0.1 * random()
         #ssm.C[0, 0] += 0.1 * random()
         #ssm.d[0] += 0.1 * random()
-        log_likelihood = ssm.learn_f_and_g_with_EM_algorithm(use_smoothed_values=False)
+        use_smoothed_values = False
+        log_likelihood = ssm.learn_f_and_g_with_EM_algorithm(use_smoothed_values=use_smoothed_values)
         plt.figure(1)
         plt.title('f non-linear, g linear. log-likelihood evolution during EM algorithm')
         plt.plot(log_likelihood)
         plt.show()
-        ssm.plot_states_in_1D()
+        ssm.plot_estimmated_states_in_1D(use_smoothed_values=use_smoothed_values)
 
 
 # lance les tests

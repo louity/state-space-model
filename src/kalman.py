@@ -721,6 +721,33 @@ class StateSpaceModel:
         plt.title('states evolution. f : x -> ' + str(self.A[0, 0]) + ' * x + ' + str(self.b[0]))
         plt.show()
 
+    def plot_estimmated_states_in_1D(self, use_smoothed_values=False):
+        if (self.state_dim != 1):
+            raise Exception('state plot can be sonly in 1D')
+        plt.clf()
+        plt.figure(1)
+        min = 0
+        max = 1
+
+        if (use_smoothed_values):
+            states = self.smoothed_state_means
+        else:
+            states = self.filtered_state_means[:, 1]
+
+        T = len(states)
+        plt.scatter(states[0:T-1], states[1:])
+        min = np.min(states)
+        max = np.max(states)
+
+        def f(x):
+            return self.compute_f(np.array([x]))[0]
+
+        X = np.linspace(min, max, 100)
+        plt.plot(X, np.vectorize(f)(X), 'r-')
+        plt.plot(X, X, 'r--')
+        plt.title('states evolution. f : x -> ' + str(self.A[0, 0]) + ' * x + ' + str(self.b[0]))
+        plt.show()
+
     def plot_states_outputs_in_1D(self):
         if (self.state_dim != 1 or self.output_dim != 1):
             raise Exception('state-output plots can be only in 1D')
