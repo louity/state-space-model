@@ -342,6 +342,11 @@ class StateSpaceModel:
 
 
     def draw_sample(self, T=1, input_sequence=None):
+        '''
+        genere une output_sequence et une state_sequence de tqille T avec les vrais
+        le for n'est clairement pas optimal
+        Comment fait-on si on veut un x_true et un x_learn: oblige de creer 2 objets?
+        '''
         if (self.input_dim > 0 ) and (input_sequence is None) and (self.input_sequence is None or len(self.input_sequence) < T):
             print 'No input sequence given, setting inputs to zero'
             self.input_sequence = [np.zeros(self.input_dim) for _ in range(0, T)]
@@ -624,7 +629,7 @@ class StateSpaceModel:
         n = self.output_dim
 
         # compute the y mean
-        mu_y = np.mean(self.output_sequence)
+        mu_y = np.mean(self.output_sequence,axis=0)
 
         # to stores expectations and variances of x_t under (y) and former parameters, t=1...T
         E_x = np.zeros((T, p))
