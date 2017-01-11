@@ -663,9 +663,9 @@ class StateSpaceModel:
         self.C = C
         self.R = R
         self.d = mu_y
-        
+
         #on va renvoyer une state sequence comme moyenne des E_x[t]
-        self.state_sequence = E_x
+        self.estimated_state_sequence_with_FA = E_x
 
 
     def learn_f_and_g_with_EM_algorithm(self, use_smoothed_values=None):
