@@ -51,6 +51,9 @@ print(ssm.Expected_complete_log_likelihood_factor_analysis())
 ssm.initialize_f_with_factor_analysis_Bis(30)
 print(ssm.Expected_complete_log_likelihood_factor_analysis())
 #ssm.Expected_complete_log_likelihood_factor_analysis()
+plt.figure(1)
+plt.plot(range(30),ssm.Trajectoire_Likelihood)
+plt.title('Expected-complete log-likelihood during EM algo')
 
 #ssm.E_step_factor_Analysis(2)
 
@@ -67,18 +70,22 @@ print(ssm.Expected_complete_log_likelihood_factor_analysis())
 #
 ##plottons le vrai <X_n> que l'on devrait obtenir
 ##Il s'agit de C^T(CC^T+R)^{-1}(y_n-d)
-#sigma_x_true = inv(np.identity(1) + C_true.transpose().dot(inv(R_true)).dot(C_true))
-#E_x_true = np.zeros((T,1))
-#
-#for t in range(T):    
-#    E_x_true[t]=sigma_x_true.dot(C_true.transpose()).dot(inv(R_true)).dot(y_output[t] - d_true)
-#
-#plt.figure(1)
-#plt.plot(range(T),x_learn[:,0])
-#
-#plt.figure(2)
-#plt.plot(range(T),x_true[:,0])
-#plt.plot(range(T),E_x_true[:,0])
+sigma_x_true = inv(np.identity(1) + C_true.transpose().dot(inv(R_true)).dot(C_true))
+E_x_true = np.zeros((T,1))
+
+for t in range(T):    
+    E_x_true[t]=sigma_x_true.dot(C_true.transpose()).dot(inv(R_true)).dot(y_output[t] - d_true)
+
+plt.figure(3)
+plt.plot(range(T),x_learn[:,0])
+plt.title('learn state sequence after EM-algorithm')
+plt.legend(['inferred states with Em-algorithm: starting from true parameters'])
+
+plt.figure(2)
+plt.plot(range(T),x_true[:,0])
+plt.plot(range(T),E_x_true[:,0])
+plt.title('comparison between true state sequence and inferred one.')
+plt.legend(['true states','inferred states with true parameters'])
 ##cette figure montre que <X_n> et x_true devrait etre globalement la meme chose...
 #
 ##la likelihood est croissante
