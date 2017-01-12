@@ -757,12 +757,15 @@ class StateSpaceModel:
         #on cree les outputs du E-step
         self.E_x = np.zeros((T, p))
         self.E_xxT = np.zeros((T, p, p))
+        self.Trajectoire_Likelihood = np.zeros(n_EM_iterations)
         #le parametres renvoyés par le M-step sont des attributs de self
         
         for i in range(n_EM_iterations):
             self.E_step_factor_Analysis(i)
             #print(self.Expected_complete_log_likelihood_factor_analysis())
             self.M_step_factor_Analysis(i)
+            
+            self.Trajectoire_Likelihood[i]=self.Expected_complete_log_likelihood_factor_analysis()                                                      
             #print(self.Expected_complete_log_likelihood_factor_analysis())
             
         RInv=inv(self.R)
