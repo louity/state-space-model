@@ -11,7 +11,7 @@ import kalman
 '''
 On va simuler le modele x_{k+1}~N(0,1) et y_k=Cx_k+d+v_k avec x de dim 1, y de dim 2, T=100, d=(1 3) C= [1 2]^T et R=diag(0.1 0.4)
 '''
-T=1000
+T=100
 C_true =  np.array([[1],[2]])
 d_true =  np.array([1, 3])
 R_true =  np.array([[0.1 ,0] ,[0 ,0.4]])
@@ -43,17 +43,35 @@ ssm=kalman.StateSpaceModel(
 
 ssm.output_sequence=y_output
 
-ssm.initialize_f_with_factor_analysis()
+ssm.initialize_f_with_factor_analysis_Bis(40)
 
-x_learn=ssm.state_sequence
+x_learn=ssm.estimated_state_sequence_with_FA
 
-print(ssm.C)
+ssm.C
+ssm.estimated_state_variance_with_FA 
+
+#plottons le vrai <X_n> que l'on devrait obtenir
+#Il s'agit de C^T(CC^T+R)^{-1}(y_n-d)
+sigma_x_true = inv(np.identity(1) + C_true.transpose().dot(inv(R_true)).dot(C_true))
+E_x_true = np.zeros((T,1))
+
+for t in range(T):    
+    E_x_true[t]=sigma_x_true.dot(C_true.transpose()).dot(inv(R_true)).dot(y_output[t] - d_true)
 
 plt.figure(1)
 plt.plot(range(T),x_learn[:,0])
+
 plt.figure(2)
 plt.plot(range(T),x_true[:,0])
+plt.plot(range(T),E_x_true[:,0])
+#cette figure montre que <X_n> et x_true devrait etre globalement la meme chose...
 
 #la likelihood est croissante
-likeli=ssm.Factor_likelihood
-plot(range(30),likeli[:,0])
+#likeli=ssm.Factor_likelihood
+#plot(range(30),likeli[:,0])
+#x_rapport= x_true / x_learn
+plt.figure(3)
+plt.plot(range(T),E_x_true[:,0])
+#plt.plot(range(T),x_rapport[:,0])
+#print(T)
+#print(np.mean(x_rapport))

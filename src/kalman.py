@@ -680,6 +680,98 @@ class StateSpaceModel:
 
         #on va renvoyer une state sequence comme moyenne des E_x[t]
         self.estimated_state_sequence_with_FA = E_x
+        # mais la variance des state sach
+        self.estimated_state_variance_with_FA = inv(np.identity(p) + CT.dot(RInv).dot(C))
+        
+    def E_step_factor_Analysis(self,Nbr_iteration):
+        '''
+        Ici on fait une etape du E-step a la "Nbr_iteartion" iteration.
+        '''
+        T = len(self.output_sequence)
+        
+        #on recupere les parametres
+        C = self.C
+        CT = C.transpose()
+        RInv = inv(self.R)
+        p = self.state_dim
+        
+    
+        for t in range(0, T):
+            y_t = self.output_sequence[t]
+            sigma_x_t = inv(np.identity(p) + CT.dot(RInv).dot(C))
+            
+            #c'est le resultat du E-step
+            self.E_x[t] = sigma_x_t.dot(CT).dot(RInv).dot(y_t - self.d)
+            E_x=self.E_x
+            self.E_xxT[t] = sigma_x_t + E_x[t][:, np.newaxis].dot(E_x[t][np.newaxis, :])
+        
+    def M_step_factor_Analysis(self,Nbr_iteration):
+        '''
+        Ici on fait une etape du M-step a la "Nbr_iteartion" iteration.
+        '''
+        #on recupere la taille des donnees
+        T = len(self.output_sequence)
+        p = self.state_dim
+        n = self.output_dim
+    
+        #variables intermediaires
+        yxT = np.zeros((n, p))
+        yyT = np.zeros((n, n))
+        xxT = np.sum(self.E_xxT, axis=0)
+    
+        for t in range(0, T):
+            
+            y_t = self.output_sequence[t][:, np.newaxis]
+            x_t = self.E_x[t][:, np.newaxis]
+    
+            yxT = yxT + y_t.dot(x_t.transpose())
+            yyT = yyT + y_t.dot(y_t.transpose())
+            
+    
+        xyT = yxT.transpose()
+        #c'est le resultat du M-step
+        self.C = yxT.dot(inv(xxT))
+        self.R = np.diag(np.diag(yyT - self.C.dot(xyT)) / T)
+        
+    def Expected_complete_log_likelihood_factor_analysis(self):
+        T = len(self.output_sequence)
+        R=self.R
+        C=self.C
+        
+        Expected_complete_likelihood=T/2*log(det(R))
+        for t in range(T):
+            x_t=self.E_x[t]
+            y_t=self.output_sequence[t]
+            Expected_complete_likelihood+= -0.5*np.trace(inv(R).dot((y_t-C.dot(x_t)).dot((y_t-C.dot(x_t)).transpose()) ))
+        return(Expected_complete_likelihood)
+    
+    def initialize_f_with_factor_analysis_Bis(self,n_EM_iterations):
+        '''
+        '''
+        T = len(self.output_sequence)
+        p = self.state_dim
+
+        #parce que celle ci est en dehors du EM-algorithm
+        self.d=np.mean(self.output_sequence,axis=0)
+        
+        #on cree les outputs du E-step
+        self.E_x = np.zeros((T, p))
+        self.E_xxT = np.zeros((T, p, p))
+        #le parametres renvoyés par le M-step sont des attributs de self
+        
+        for i in range(n_EM_iterations):
+            self.E_step_factor_Analysis(i)
+            #print(self.Expected_complete_log_likelihood_factor_analysis())
+            self.M_step_factor_Analysis(i)
+            #print(self.Expected_complete_log_likelihood_factor_analysis())
+            
+        RInv=inv(self.R)
+        CT=self.C.transpose()
+        
+        #on va renvoyer une state sequence comme moyenne des E_x[t]
+        self.estimated_state_sequence_with_FA = self.E_x
+        # mais la variance des state sach
+        self.estimated_state_variance_with_FA = inv(np.identity(p) + CT.dot(RInv).dot(self.C))
 
 
     def learn_f_and_g_with_EM_algorithm(self, use_smoothed_values=None):
