@@ -608,80 +608,7 @@ class StateSpaceModel:
         if (q > 0):
             self.D = theta_g[:,J+p:J+p+q]
 
-    def initialize_f_with_factor_analysis(self):
-        """
-	    Attention C,R et d sont initialise par defaut
-	    Q est aussi initialise par defaut
-	    Se rappeler que l'on impose a Q d'etre initialisée a l'identite pour ce qui suit...
-            initialize the matrix C, the vector d  and the covariance matrix R involved in the function g with factor analysis
-            implicitely x_{k+1}=w_k\sim N(0,I_p) and y_k=Cx_k+d+v_k
-	    Il faut aussi renvoyer quelque chose pour les states
-        """
-        T = len(self.output_sequence)
-        n_EM_iterations = 30
 
-        #initialization
-        C = self.C
-        CT = C.transpose()
-        R = self.R
-        RInv = inv(self.R)
-        p = self.state_dim
-        n = self.output_dim
-
-        # compute the y mean
-        mu_y = np.mean(self.output_sequence,axis=0)
-
-        # to stores expectations and variances of x_t under (y) and former parameters, t=1...T
-        E_x = np.zeros((T, p))
-        E_xxT = np.zeros((T, p, p))
-        
-        self.Factor_likelihood= np.zeros((n_EM_iterations,1))
-
-        # EM algorithm
-        for EM_iteration in range(0, n_EM_iterations):
-            Expected_complete_likelihood=T/2*log(det(R))
-            #E-Step
-            for t in range(0, T):
-                y_t = self.output_sequence[t]
-                sigma_x_t = inv(np.identity(p) + CT.dot(RInv).dot(C))
-
-                E_x[t] = sigma_x_t.dot(CT).dot(RInv).dot(y_t - mu_y)
-                E_xxT[t] = sigma_x_t + E_x[t][:, np.newaxis].dot(E_x[t][np.newaxis, :])
-
-            #M-step
-            yxT = np.zeros((n, p))
-            yyT = np.zeros((n, n))
-            xxT = np.sum(E_xxT, axis=0)
-
-            for t in range(0, T):
-                
-                y_t = self.output_sequence[t][:, np.newaxis]
-                x_t = E_x[t][:, np.newaxis]
-
-                yxT = yxT + y_t.dot(x_t.transpose())
-                yyT = yyT + y_t.dot(y_t.transpose())
-                
-                Expected_complete_likelihood+= -0.5*np.trace(inv(R).dot((y_t-C.dot(x_t)).dot((y_t-C.dot(x_t)).transpose()) ))
-
-            xyT = yxT.transpose()
-            C = yxT.dot(inv(xxT))
-            R = np.diag(np.diag(yyT - C.dot(xyT)) / T)
-            
-            
-            CT = C.transpose()
-            RInv = inv(R)
-            
-            self.Factor_likelihood[EM_iteration]=Expected_complete_likelihood
-
-        # set computed values
-        self.C = C
-        self.R = R
-        self.d = mu_y
-
-        #on va renvoyer une state sequence comme moyenne des E_x[t]
-        self.estimated_state_sequence_with_FA = E_x
-        # mais la variance des state sach
-        self.estimated_state_variance_with_FA = inv(np.identity(p) + CT.dot(RInv).dot(C))
         
     def E_step_factor_Analysis(self,Nbr_iteration):
         '''
@@ -745,7 +672,7 @@ class StateSpaceModel:
             Expected_complete_likelihood+= -0.5*np.trace(inv(R).dot((y_t-C.dot(x_t)).dot((y_t-C.dot(x_t)).transpose()) ))
         return(Expected_complete_likelihood)
     
-    def initialize_f_with_factor_analysis_Bis(self,n_EM_iterations):
+    def initialize_f_with_factor_analysis(self,n_EM_iterations):
         '''
         '''
         T = len(self.output_sequence)
@@ -910,3 +837,89 @@ class StateSpaceModel:
             log_likelihood += -0.5 * n * log(2 * np.pi) - 0.5 * log(det(Sigma_y)) - 0.5 * (y - mu_y).dot(inv(Sigma_y)).dot(y - mu_y)
 
         return log_likelihood
+
+
+
+
+
+
+
+
+
+
+
+
+#    def initialize_f_with_factor_analysis(self):
+#        """
+#	    Attention C,R et d sont initialise par defaut
+#	    Q est aussi initialise par defaut
+#	    Se rappeler que l'on impose a Q d'etre initialisée a l'identite pour ce qui suit...
+#            initialize the matrix C, the vector d  and the covariance matrix R involved in the function g with factor analysis
+#            implicitely x_{k+1}=w_k\sim N(0,I_p) and y_k=Cx_k+d+v_k
+#	    Il faut aussi renvoyer quelque chose pour les states
+#        """
+#        T = len(self.output_sequence)
+#        n_EM_iterations = 30
+#
+#        #initialization
+#        C = self.C
+#        CT = C.transpose()
+#        R = self.R
+#        RInv = inv(self.R)
+#        p = self.state_dim
+#        n = self.output_dim
+#
+#        # compute the y mean
+#        mu_y = np.mean(self.output_sequence,axis=0)
+#
+#        # to stores expectations and variances of x_t under (y) and former parameters, t=1...T
+#        E_x = np.zeros((T, p))
+#        E_xxT = np.zeros((T, p, p))
+#        
+#        self.Factor_likelihood= np.zeros((n_EM_iterations,1))
+#
+#        # EM algorithm
+#        for EM_iteration in range(0, n_EM_iterations):
+#            Expected_complete_likelihood=T/2*log(det(R))
+#            #E-Step
+#            for t in range(0, T):
+#                y_t = self.output_sequence[t]
+#                sigma_x_t = inv(np.identity(p) + CT.dot(RInv).dot(C))
+#
+#                E_x[t] = sigma_x_t.dot(CT).dot(RInv).dot(y_t - mu_y)
+#                E_xxT[t] = sigma_x_t + E_x[t][:, np.newaxis].dot(E_x[t][np.newaxis, :])
+#
+#            #M-step
+#            yxT = np.zeros((n, p))
+#            yyT = np.zeros((n, n))
+#            xxT = np.sum(E_xxT, axis=0)
+#
+#            for t in range(0, T):
+#                
+#                y_t = self.output_sequence[t][:, np.newaxis]
+#                x_t = E_x[t][:, np.newaxis]
+#
+#                yxT = yxT + y_t.dot(x_t.transpose())
+#                yyT = yyT + y_t.dot(y_t.transpose())
+#                
+#                Expected_complete_likelihood+= -0.5*np.trace(inv(R).dot((y_t-C.dot(x_t)).dot((y_t-C.dot(x_t)).transpose()) ))
+#
+#            xyT = yxT.transpose()
+#            C = yxT.dot(inv(xxT))
+#            R = np.diag(np.diag(yyT - C.dot(xyT)) / T)
+#            
+#            
+#            CT = C.transpose()
+#            RInv = inv(R)
+#            
+#            self.Factor_likelihood[EM_iteration]=Expected_complete_likelihood
+#
+#        # set computed values
+#        self.C = C
+#        self.R = R
+#        self.d = mu_y
+#
+#        #on va renvoyer une state sequence comme moyenne des E_x[t]
+#        self.estimated_state_sequence_with_FA = E_x
+#        # mais la variance des state sach
+#        self.estimated_state_variance_with_FA = inv(np.identity(p) + CT.dot(RInv).dot(C))
