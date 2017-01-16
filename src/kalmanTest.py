@@ -257,6 +257,49 @@ class TestStateSpaceModel(unittest.TestCase):
         plt.show()
         ssm.plot_estimmated_states_in_1D(use_smoothed_values=use_smoothed_values)
 
+    def test_initialization_with_factor_analysis(self):
+        '''
+        '''
+        n_sample = 100
+        Sigma_0 = np.ones((1, 1))
+        A = np.ones((1, 1))
+        Q = np.ones((1, 1))
+        b = np.zeros(1)
+        C = np.array([[1],[2]])
+        R = np.array([[0.1 ,0] ,[0 ,0.4]])
+        d = np.array([1, 3])
+
+
+        ssm = StateSpaceModel(
+            is_f_linear=True,
+            is_g_linear=True,
+            state_dim=1,
+            input_dim=0,
+            output_dim=2,
+            Sigma_0=Sigma_0,
+            A=A,
+            Q=Q,
+            b=b,
+            C=C,
+            R=R,
+            d=d
+        )
+
+        ssm.draw_sample(T=n_sample)
+
+        n_iterations_FA = 30
+        likelihood_evolution = ssm.initialize_f_with_factor_analysis(n_iterations_FA)
+
+        plt.figure(1)
+        plt.plot(likelihood_evolution)
+        plt.title('Expected-complete log-likelihood during EM algo')
+
+        plt.figure(2)
+        plt.plot(ssm.state_sequence[:, 0])
+        plt.plot(ssm.estimated_state_sequence_with_FA[:, 0])
+        plt.title('comparison between true state sequence and estimmated one.')
+        plt.legend(['true states', 'estimmated states'])
+        plt.show()
 
 # lance les tests
 suite = unittest.TestLoader().loadTestsFromTestCase(TestStateSpaceModel)
