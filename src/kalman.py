@@ -18,7 +18,7 @@ class StateSpaceModel:
     permet de faire du filtering et du smoothing
     """
 
-    def __init__(self, is_f_linear=True, is_g_linear=True, state_dim=None, input_dim=None, output_dim=None, Sigma_0=None, A=None, B=None, b=None, Q=None, C=None, D=None, d=None, R=None, f_rbf_parameters=None, f_rbf_coeffs=None, g_rbf_parameters=None, g_rbf_coeffs=None):
+    def __init__(self, is_f_linear=True, is_g_linear=True, state_dim=None, input_dim=None, output_dim=None, Sigma_0=None, A=None, B=None, b=None, Q=None, C=None, D=None, d=None, R=None, f_rbf_parameters=None, f_rbf_coeffs=None, g_rbf_parameters=None, g_rbf_coeffs=None, f_analytical=None):
         '''
         Cette fonction donne les attributs a l'objet self et verifie leur coherence
         '''
@@ -56,6 +56,8 @@ class StateSpaceModel:
         self.g_rbf_parameters = g_rbf_parameters
         self.f_rbf_coeffs = f_rbf_coeffs
         self.g_rbf_coeffs = g_rbf_coeffs
+        
+        self.f_analytical = f_analytical
 
         self.output_sequence = None
         self.state_sequence = None
@@ -136,6 +138,9 @@ class StateSpaceModel:
             raise ValueError('x vector must have state dimension')
         if (u is not None and u.size != self.input_dim):
             raise ValueError('u vector must have state dimension')
+            
+        if (self.f_analytical is not None and u is None):
+            return self.f_analytical(x)
 
         f = self.A.dot(x) + self.b
 
@@ -373,7 +378,8 @@ class StateSpaceModel:
 
         self.output_sequence = outputs
         self.state_sequence = states
-
+        
+    
     def compute_f_optimal_parameters(self, use_smoothed_values=False):
         T = len(self.output_sequence)
         I = self.f_rbf_parameters['n_rbf'] if (not self.is_f_linear) else 0

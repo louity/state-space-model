@@ -202,7 +202,7 @@ class TestStateSpaceModel(unittest.TestCase):
         ssm.d[0] = 0.5
         use_smoothed_values = False
         log_likelihood = ssm.learn_f_and_g_with_EM_algorithm(use_smoothed_values=use_smoothed_values)
-        plt.figure(1)
+        plt.figure(10)
         plt.title('f and g linear. log-likelihood evolution during EM algorithm')
         plt.plot(log_likelihood)
         plt.show()
@@ -241,6 +241,9 @@ class TestStateSpaceModel(unittest.TestCase):
             Q=Q,
             R=R
         )
+        
+        #on va definir une f_analytical quelconque
+        ssm.f_analytical=np.cos
         ssm.draw_sample(T=n_sample)
         ssm.plot_states_in_1D()
 
@@ -256,6 +259,8 @@ class TestStateSpaceModel(unittest.TestCase):
         plt.plot(log_likelihood)
         plt.show()
         ssm.plot_estimmated_states_in_1D(use_smoothed_values=use_smoothed_values)
+        
+
 
     def test_initialization_with_factor_analysis(self):
         '''
