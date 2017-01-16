@@ -64,7 +64,7 @@ As already mentioned, computing these quantities amounts to infer the conditiona
       \hat{P}_{t+1 \given t} &= A \hat{P}_{t \given t} A^{\top} + Q\\
       \hat{P}_{t,t+1 \given t} &= \hat{P}_{t \given t}A^{\top}\\
       K_{t+1} &= \hat{P}_{t+1 \given t}C^{\top}(C \hat{P}_{t+1 \given t} C^{\top} + R^{(k-1)})^{-1}\\
-      \hat{x}_{t+1 \given t+1} &= x_{t+1 \given t} + K_{t+1} \left(y_{t+1} - (C\hat{x}_{t+1 \given t} + D u_t + d) \right)\\
+      \hat{x}_{t+1 \given t+1} &= \hat{x}_{t+1 \given t} + K_{t+1} \left(y_{t+1} - (C\hat{x}_{t+1 \given t} + D u_t + d) \right)\\
       \hat{P}_{t+1 \given t+1} &= \hat{P}_{t+1 \given t} - K_{t+1} C \hat{P}_{t+1 \given t}\\
     \end{align*}
 We compute the matrix $K_{t}$ (Kalman gain matrix) to simplify the computations.
