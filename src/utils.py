@@ -2,7 +2,10 @@
 
 import numpy as np
 from numpy import power, exp, sqrt, log
-from numpy.linalg import inv, det
+from numpy.linalg import inv, det, eigvals
+
+def is_pos_def(M):
+    return np.all(eigvals(M) > 0)
 
 def check_vector(v, size, err_message='wrong vector size'):
     if v is None:

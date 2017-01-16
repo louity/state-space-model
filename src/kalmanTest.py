@@ -6,10 +6,7 @@ from kalman import StateSpaceModel
 from numpy.random import rand, random
 import matplotlib.pyplot as plt
 
-def is_pos_def(M):
-    return np.all(np.linalg.eigvals(M) > 0)
-
-STATE_SPACE_MODEL_MINIMAL_ATTRIBUTES = ['is_f_linear', 'state_dim', 'input_dim', 'output_dim', 'Sigma_0', 'A', 'Q', 'C', 'R']
+import utils
 
 class TestStateSpaceModel(unittest.TestCase):
     """
@@ -25,7 +22,7 @@ class TestStateSpaceModel(unittest.TestCase):
             ssm = StateSpaceModel(is_f_linear=is_f_linear)
 
             # verifier que les attributs minimaux sont bien définis
-            for j, attr in enumerate(STATE_SPACE_MODEL_MINIMAL_ATTRIBUTES):
+            for j, attr in enumerate(['is_f_linear', 'state_dim', 'input_dim', 'output_dim', 'Sigma_0', 'A', 'Q', 'C', 'R']):
                 self.assertIsNotNone(getattr(ssm, attr), 'attribute ' + attr + ' should not be None')
 
     def test_sample_method(self):
@@ -80,12 +77,12 @@ class TestStateSpaceModel(unittest.TestCase):
                     self.assertEqual(PFilter0.shape, (ssm.state_dim, ssm.state_dim), 'cov matrix must have state_dim dimension')
                     self.assertEqual(PFilter1.shape, (ssm.state_dim, ssm.state_dim), 'cov matrix must have state_dim dimension')
                     # check that matrices are definite positive
-                    self.assertTrue(is_pos_def(PFilter0), 'filtered covariance matrix must be positive definite')
-                    self.assertTrue(is_pos_def(PFilter1), 'filtered covariance matrix must be positive definite')
+                    self.assertTrue(utils.is_pos_def(PFilter0), 'filtered covariance matrix must be positive definite')
+                    self.assertTrue(utils.is_pos_def(PFilter1), 'filtered covariance matrix must be positive definite')
 
                     self.assertEqual(xSmooth.size, ssm.state_dim, 'mean vector must have state_dim dimension')
                     self.assertEqual(PSmooth.shape, (ssm.state_dim, ssm.state_dim), 'cov matrix must have state_dim dimension')
-                    self.assertTrue(is_pos_def(PSmooth), default_message + '. Smoothed covariance P_{T-' + str(i) +'} matrix must be positive definite')
+                    self.assertTrue(utils.is_pos_def(PSmooth), default_message + '. Smoothed covariance P_{T-' + str(i) +'} matrix must be positive definite')
 
     def test_extended_kalman_filter(self):
         """
@@ -114,8 +111,8 @@ class TestStateSpaceModel(unittest.TestCase):
                         self.assertEqual(PFilter0.shape, (ssm.state_dim, ssm.state_dim), 'cov matrix must have state_dim dimension')
                         self.assertEqual(PFilter1.shape, (ssm.state_dim, ssm.state_dim), 'cov matrix must have state_dim dimension')
                         # check that matrices are definite positive
-                        self.assertTrue(is_pos_def(PFilter0), 'filtered covariance matrix must be positive definite')
-                        self.assertTrue(is_pos_def(PFilter1), 'filtered covariance matrix must be positive definite')
+                        self.assertTrue(utils.is_pos_def(PFilter0), 'filtered covariance matrix must be positive definite')
+                        self.assertTrue(utils.is_pos_def(PFilter1), 'filtered covariance matrix must be positive definite')
 
     def test_extended_kalman_smoother(self):
         """
@@ -149,12 +146,12 @@ class TestStateSpaceModel(unittest.TestCase):
                         self.assertEqual(PFilter0.shape, (ssm.state_dim, ssm.state_dim), 'cov matrix must have state_dim dimension')
                         self.assertEqual(PFilter1.shape, (ssm.state_dim, ssm.state_dim), 'cov matrix must have state_dim dimension')
                         # check that matrices are definite positive
-                        self.assertTrue(is_pos_def(PFilter0), 'filtered covariance matrix must be positive definite')
-                        self.assertTrue(is_pos_def(PFilter1), 'filtered covariance matrix must be positive definite')
+                        self.assertTrue(utils.is_pos_def(PFilter0), 'filtered covariance matrix must be positive definite')
+                        self.assertTrue(utils.is_pos_def(PFilter1), 'filtered covariance matrix must be positive definite')
 
                         self.assertEqual(xSmooth.size, ssm.state_dim, 'mean vector must have state_dim dimension')
                         self.assertEqual(PSmooth.shape, (ssm.state_dim, ssm.state_dim), 'cov matrix must have state_dim dimension')
-                        self.assertTrue(is_pos_def(PSmooth), 'is_f_linear' + str(is_f_linear) + '.  is_g_linear' + str(is_g_linear) + '.  state_dim' + str(state_dim) + '.  output_dim' + str(output_dim) + '. Smoothed covariance P_{T-' + str(i) +'} matrix must be positive definite')
+                        self.assertTrue(utils.is_pos_def(PSmooth), 'is_f_linear' + str(is_f_linear) + '.  is_g_linear' + str(is_g_linear) + '.  state_dim' + str(state_dim) + '.  output_dim' + str(output_dim) + '. Smoothed covariance P_{T-' + str(i) +'} matrix must be positive definite')
 
     def test_parameter_learning_in_linear_case(self):
         """
@@ -173,7 +170,7 @@ class TestStateSpaceModel(unittest.TestCase):
                 ssm.compute_g_optimal_parameters()
 
     def test_EM_algorithm_in_linear_case(self):
-        n_sample = 50
+        n_sample = 1000
         is_f_linear = True
         is_g_linear = True
         state_dim = 1
@@ -199,10 +196,10 @@ class TestStateSpaceModel(unittest.TestCase):
         ssm.draw_sample(T=n_sample)
         ssm.plot_states_in_1D()
 
-        ssm.A[0, 0] += 0.1 * random()
-        ssm.b[0] += 0.1 * random()
-        ssm.C[0, 0] += 0.1 * random()
-        ssm.d[0] += 0.1 * random()
+        ssm.A[0, 0] = 0.5
+        ssm.b[0] = 0.5
+        ssm.C[0, 0] = 0.5
+        ssm.d[0] = 0.5
         use_smoothed_values = False
         log_likelihood = ssm.learn_f_and_g_with_EM_algorithm(use_smoothed_values=use_smoothed_values)
         plt.figure(1)
@@ -212,7 +209,7 @@ class TestStateSpaceModel(unittest.TestCase):
         ssm.plot_estimmated_states_in_1D(use_smoothed_values=use_smoothed_values)
 
     def test_EM_algorithm_in_non_linear_case(self):
-        n_sample = 50
+        n_sample = 1000
         is_f_linear = False
         is_g_linear = True
         state_dim = 1
@@ -247,10 +244,11 @@ class TestStateSpaceModel(unittest.TestCase):
         ssm.draw_sample(T=n_sample)
         ssm.plot_states_in_1D()
 
-        #ssm.A[0, 0] += 0.1 * random()
-        #ssm.b[0] += 0.1 * random()
-        #ssm.C[0, 0] += 0.1 * random()
-        #ssm.d[0] += 0.1 * random()
+        ssm.A[0, 0] += 0.1 * random()
+        ssm.b[0] += 0.1 * random()
+        ssm.C[0, 0] += 0.1 * random()
+        ssm.d[0] += 0.1 * random()
+        ssm.f_rbf_coeffs = np.array([[0.], [0.]])
         use_smoothed_values = False
         log_likelihood = ssm.learn_f_and_g_with_EM_algorithm(use_smoothed_values=use_smoothed_values)
         plt.figure(1)
