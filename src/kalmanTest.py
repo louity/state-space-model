@@ -243,7 +243,7 @@ class TestStateSpaceModel(unittest.TestCase):
         )
         
         #on va definir une f_analytical quelconque
-        ssm.f_analytical=np.cos
+        #ssm.f_analytical=np.cos
         ssm.draw_sample(T=n_sample)
         ssm.plot_states_in_1D()
 
@@ -257,6 +257,8 @@ class TestStateSpaceModel(unittest.TestCase):
         plt.figure(1)
         plt.title('f non-linear, g linear. log-likelihood evolution during EM algorithm')
         plt.plot(log_likelihood)
+        plt.xlabel('Number of Iteration')
+        plt.ylabel('likelihood')
         plt.show()
         ssm.plot_estimmated_states_in_1D(use_smoothed_values=use_smoothed_values)
         

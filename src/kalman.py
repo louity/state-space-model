@@ -749,7 +749,10 @@ class StateSpaceModel:
         X = np.linspace(min, max, 100)
         plt.plot(X, np.vectorize(f)(X),'r-')
         plt.plot(X, X, 'r--')
-        plt.title('true states evolution. f : x -> ' + str(self.A[0, 0]) + ' * x + ' + str(self.b[0]))
+        if self.is_f_linear:
+            plt.title('True states evolution')
+        else:
+            plt.title('true states evolution. f : x -> ' + str(self.A[0, 0]) + ' * x + ' + str(self.b[0]))
         plt.show()
 
     def plot_estimmated_states_in_1D(self, use_smoothed_values=False):
@@ -776,7 +779,13 @@ class StateSpaceModel:
         X = np.linspace(min, max, 100)
         plt.plot(X, np.vectorize(f)(X), 'r-')
         plt.plot(X, X, 'r--')
-        plt.title('inferred states evolution. f : x -> ' + str(self.A[0, 0]) + ' * x + ' + str(self.b[0]))
+        #ce n'était bon que pour la partir lineaire
+        if self.is_f_linear:
+            plt.title('inferred states evolution. f : x -> ' + str(self.A[0, 0]) + ' * x + ' + str(self.b[0]))
+        else:
+            plt.title('Inferred states evolution')
+            
+        plt.legend(['true function'])
         plt.show()
 
     def plot_states_outputs_in_1D(self):
