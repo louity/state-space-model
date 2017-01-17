@@ -1,0 +1,43 @@
+\documentclass[11pt, oneside]{amsart}
+\usepackage{geometry}
+\usepackage[utf8]{inputenc}
+\usepackage{graphicx}
+\usepackage{float}
+\usepackage{etex,mathtools}
+\usepackage{amssymb}
+\usepackage{enumitem}
+\usepackage{amsmath}
+\usepackage{caption}
+\usepackage{listings}
+\usepackage{array}
+
+\usepackage[colorinlistoftodos]{todonotes}
+
+\newcommand{\notes}[1]{\ifnotesw \textcolor{red}{  $\clubsuit$\ {\sf \bf \it  #1}\ $\clubsuit$ }\fi}
+
+\title[]{Article review concerning learning}
+\author[1]{Nicolas Jouvin}
+\author[2]{Thomas Kerdreux}
+\author[3]{Louis Thiry}
+\begin{document}
+
+\maketitle
+\begin{abstract}
+  Review of articles concerning learning
+\end{abstract}
+
+\begin{itemize}
+  \item \textbf{NONLINEAR DYNAMICAL SYSTEM IDENTIFICATION FROM UNCERTAIN AND INDIRECT MEASUREMENTs, HENNING U. VOSS and JENS TIMMER, JURGEN KURTHS}: not learning, article cited as an extension
+  \item \textbf{System identification of non-linear state-space models}: E-Step with particle filter, M-Step with gradient descent, no parametrisation explicited.
+  \item \textbf{Identification of nonlinear systems using Polynomial Nonlinear State Space models} : Polynomial functions, no EM algo.
+  \item \textbf{An Unscented Kalman Filter Approachto the Estimation of NonlinearDynamical Systems Models}: Only E-step with UKF.
+  \item \textbf{Dynamical modeling with kernels for nonlinear time series prediction}: Only state varialbes and deals with modelling.
+  \item \textbf{Approximate EM Algorithms for Parameter and State Estimation inNonlinear Stochastic Models}: use EKF in E-Step, iterative optimization in M-Step. Cite ou article and its previous version. No further going.
+  \item \textbf{State-Space Inference and Learning with Gaussian Processes}: use Gaussian process in E-Step, iterative optimization in M-Step. Cite our article with the term RBF
+  \item \textbf{Time series filtering, smoothing and learning using the kernel Kalman filter}: EM algoritmh applied to $\Phi(x)$ with KF in E-Step and gradient descent in M-Step.
+  \item \textbf{Dynamic Factor Graphsfor Time Series Modeling}: E end M-Step with gradient.
+\end{itemize}
+
+
+
+\end{document}
