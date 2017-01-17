@@ -153,63 +153,63 @@ class TestStateSpaceModel(unittest.TestCase):
                         self.assertEqual(PSmooth.shape, (ssm.state_dim, ssm.state_dim), 'cov matrix must have state_dim dimension')
                         self.assertTrue(utils.is_pos_def(PSmooth), 'is_f_linear' + str(is_f_linear) + '.  is_g_linear' + str(is_g_linear) + '.  state_dim' + str(state_dim) + '.  output_dim' + str(output_dim) + '. Smoothed covariance P_{T-' + str(i) +'} matrix must be positive definite')
 
-    def test_parameter_learning_in_linear_case(self):
-        """
-            teste la méthode compute_f_optimal_parametes
-        """
-        is_f_linear = True
-        is_g_linear = True
-        for j, (state_dim, output_dim) in enumerate(zip([1], [1])):
-            # tester différentes tailles
-            for k, n_sample in enumerate([100]):
-                ssm = StateSpaceModel(is_f_linear=is_f_linear, is_g_linear=is_g_linear, state_dim=state_dim, output_dim=output_dim)
-                ssm.draw_sample(T=n_sample)
-                is_extended = False
-                ssm.kalman_smoothing(is_extended=is_extended)
-                ssm.compute_f_optimal_parameters()
-                ssm.compute_g_optimal_parameters()
-
-    def test_EM_algorithm_in_linear_case(self):
-        n_sample = 1000
-        is_f_linear = True
-        is_g_linear = True
-        state_dim = 1
-        output_dim = 1
-        A = np.ones((1, 1))
-        b = rand(1)
-        C = np.ones((1, 1))
-        d = rand(1)
-        Q = np.array([[0.1]])
-        R = np.array([[0.1]])
-        ssm = StateSpaceModel(
-            is_f_linear=is_f_linear,
-            is_g_linear=is_g_linear,
-            state_dim=state_dim,
-            output_dim=output_dim,
-            A=A,
-            b=b,
-            C=C,
-            d=d,
-            Q=Q,
-            R=R
-        )
-        ssm.draw_sample(T=n_sample)
-        ssm.plot_states_in_1D()
-
-        ssm.A[0, 0] = 0.5
-        ssm.b[0] = 0.5
-        ssm.C[0, 0] = 0.5
-        ssm.d[0] = 0.5
-        use_smoothed_values = False
-        log_likelihood = ssm.learn_f_and_g_with_EM_algorithm(use_smoothed_values=use_smoothed_values)
-        plt.figure(10)
-        plt.title('f and g linear. log-likelihood evolution during EM algorithm')
-        plt.plot(log_likelihood)
-        plt.show()
-        ssm.plot_estimmated_states_in_1D(use_smoothed_values=use_smoothed_values)
+#    def test_parameter_learning_in_linear_case(self):
+#        """
+#            teste la méthode compute_f_optimal_parametes
+#        """
+#        is_f_linear = True
+#        is_g_linear = True
+#        for j, (state_dim, output_dim) in enumerate(zip([1], [1])):
+#            # tester différentes tailles
+#            for k, n_sample in enumerate([100]):
+#                ssm = StateSpaceModel(is_f_linear=is_f_linear, is_g_linear=is_g_linear, state_dim=state_dim, output_dim=output_dim)
+#                ssm.draw_sample(T=n_sample)
+#                is_extended = False
+#                ssm.kalman_smoothing(is_extended=is_extended)
+#                ssm.compute_f_optimal_parameters()
+#                ssm.compute_g_optimal_parameters()
+#
+#    def test_EM_algorithm_in_linear_case(self):
+#        n_sample = 100
+#        is_f_linear = True
+#        is_g_linear = True
+#        state_dim = 1
+#        output_dim = 1
+#        A = np.ones((1, 1))
+#        b = rand(1)
+#        C = np.ones((1, 1))
+#        d = rand(1)
+#        Q = np.array([[0.1]])
+#        R = np.array([[0.1]])
+#        ssm = StateSpaceModel(
+#            is_f_linear=is_f_linear,
+#            is_g_linear=is_g_linear,
+#            state_dim=state_dim,
+#            output_dim=output_dim,
+#            A=A,
+#            b=b,
+#            C=C,
+#            d=d,
+#            Q=Q,
+#            R=R
+#        )
+#        ssm.draw_sample(T=n_sample)
+#        ssm.plot_states_in_1D()
+#
+#        ssm.A[0, 0] = 0.5
+#        ssm.b[0] = 0.5
+#        ssm.C[0, 0] = 0.5
+#        ssm.d[0] = 0.5
+#        use_smoothed_values = False
+#        log_likelihood = ssm.learn_f_and_g_with_EM_algorithm(use_smoothed_values=use_smoothed_values)
+#        plt.figure(10)
+#        plt.title('f and g linear. log-likelihood evolution during EM algorithm')
+#        plt.plot(log_likelihood)
+#        plt.show()
+#        ssm.plot_estimmated_states_in_1D(use_smoothed_values=use_smoothed_values)
 
     def test_EM_algorithm_in_non_linear_case(self):
-        n_sample = 1000
+        n_sample = 5000
         is_f_linear = False
         is_g_linear = True
         state_dim = 1
@@ -244,6 +244,15 @@ class TestStateSpaceModel(unittest.TestCase):
         
         #on va definir une f_analytical quelconque
         #ssm.f_analytical=np.cos
+        
+        def f_Not_RBF_scalar(x):
+            value=0
+            value=np.cos(10*x)
+            return(value)
+        
+        f_Not_RBF=np.vectorize(f_Not_RBF_scalar)
+        ssm.f_analytical=f_Not_RBF
+        
         ssm.draw_sample(T=n_sample)
         ssm.plot_states_in_1D()
 
@@ -251,7 +260,16 @@ class TestStateSpaceModel(unittest.TestCase):
         ssm.b[0] += 0.1 * random()
         ssm.C[0, 0] += 0.1 * random()
         ssm.d[0] += 0.1 * random()
-        ssm.f_rbf_coeffs = np.array([[0.], [0.]])
+        
+        #et si on commence a apprendre avec plus de I qu'il n'y en a réellement
+        f_rbf_parameters_Bis = {
+            'n_rbf': 4,
+            'centers': np.array([[-0.2], [0.2], [0.3], [0.7]]),
+            'width': np.array([[[0.02]], [[0.02]],[[0.02]],[[0.02]]])
+        }
+        ssm.f_rbf_parameters=f_rbf_parameters_Bis
+        ssm.f_rbf_coeffs= np.array([[-0.2], [0.2], [0.3], [0.7]])
+        #ssm.f_rbf_coeffs = np.array([[0.], [0.]])
         use_smoothed_values = False
         log_likelihood = ssm.learn_f_and_g_with_EM_algorithm(use_smoothed_values=use_smoothed_values)
         plt.figure(1)
@@ -260,53 +278,56 @@ class TestStateSpaceModel(unittest.TestCase):
         plt.xlabel('Number of Iteration')
         plt.ylabel('likelihood')
         plt.show()
+        #pour que compute_f me renvoit ce qui a ete appris
+        ssm.f_analytical=None
         ssm.plot_estimmated_states_in_1D(use_smoothed_values=use_smoothed_values)
+        print(ssm.f_rbf_coeffs)
         
 
 
-    def test_initialization_with_factor_analysis(self):
-        '''
-        '''
-        n_sample = 100
-        Sigma_0 = np.ones((1, 1))
-        A = np.ones((1, 1))
-        Q = np.ones((1, 1))
-        b = np.zeros(1)
-        C = np.array([[1],[2]])
-        R = np.array([[0.1 ,0] ,[0 ,0.4]])
-        d = np.array([1, 3])
-
-
-        ssm = StateSpaceModel(
-            is_f_linear=True,
-            is_g_linear=True,
-            state_dim=1,
-            input_dim=0,
-            output_dim=2,
-            Sigma_0=Sigma_0,
-            A=A,
-            Q=Q,
-            b=b,
-            C=C,
-            R=R,
-            d=d
-        )
-
-        ssm.draw_sample(T=n_sample)
-
-        n_iterations_FA = 30
-        likelihood_evolution = ssm.initialize_f_with_factor_analysis(n_iterations_FA)
-
-        plt.figure(1)
-        plt.plot(likelihood_evolution)
-        plt.title('Expected-complete log-likelihood during EM algo')
-
-        plt.figure(2)
-        plt.plot(ssm.state_sequence[:, 0])
-        plt.plot(ssm.estimated_state_sequence_with_FA[:, 0])
-        plt.title('comparison between true state sequence and estimmated one.')
-        plt.legend(['true states', 'estimmated states'])
-        plt.show()
+#    def test_initialization_with_factor_analysis(self):
+#        '''
+#        '''
+#        n_sample = 100
+#        Sigma_0 = np.ones((1, 1))
+#        A = np.ones((1, 1))
+#        Q = np.ones((1, 1))
+#        b = np.zeros(1)
+#        C = np.array([[1],[2]])
+#        R = np.array([[0.1 ,0] ,[0 ,0.4]])
+#        d = np.array([1, 3])
+#
+#
+#        ssm = StateSpaceModel(
+#            is_f_linear=True,
+#            is_g_linear=True,
+#            state_dim=1,
+#            input_dim=0,
+#            output_dim=2,
+#            Sigma_0=Sigma_0,
+#            A=A,
+#            Q=Q,
+#            b=b,
+#            C=C,
+#            R=R,
+#            d=d
+#        )
+#
+#        ssm.draw_sample(T=n_sample)
+#
+#        n_iterations_FA = 30
+#        likelihood_evolution = ssm.initialize_f_with_factor_analysis(n_iterations_FA)
+#
+#        plt.figure(1)
+#        plt.plot(likelihood_evolution)
+#        plt.title('Expected-complete log-likelihood during EM algo')
+#
+#        plt.figure(2)
+#        plt.plot(ssm.state_sequence[:, 0])
+#        plt.plot(ssm.estimated_state_sequence_with_FA[:, 0])
+#        plt.title('comparison between true state sequence and estimmated one.')
+#        plt.legend(['true states', 'estimmated states'])
+#        plt.show()
 
 # lance les tests
 suite = unittest.TestLoader().loadTestsFromTestCase(TestStateSpaceModel)

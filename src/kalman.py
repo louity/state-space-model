@@ -729,6 +729,9 @@ class StateSpaceModel:
         return log_likelihood
 
     def plot_states_in_1D(self):
+        '''
+        S'appelle avant d'avoir appris les coefficients 
+        '''
         if (self.state_dim != 1):
             raise Exception('state plot can be sonly in 1D')
         plt.clf()
@@ -750,12 +753,16 @@ class StateSpaceModel:
         plt.plot(X, np.vectorize(f)(X),'r-')
         plt.plot(X, X, 'r--')
         if self.is_f_linear:
-            plt.title('True states evolution')
-        else:
             plt.title('true states evolution. f : x -> ' + str(self.A[0, 0]) + ' * x + ' + str(self.b[0]))
+        else:
+            plt.title('True states evolution')
         plt.show()
 
     def plot_estimmated_states_in_1D(self, use_smoothed_values=False):
+        '''
+        Il n'y a pas de difference avec plot_states_in_1D si ce n'est dans les legendes et title, car
+        plot_estimmated_states_in_1D s'appelle après que l'on est appris les coefficients.
+        '''
         if (self.state_dim != 1):
             raise Exception('state plot can be sonly in 1D')
         plt.clf()
@@ -785,7 +792,7 @@ class StateSpaceModel:
         else:
             plt.title('Inferred states evolution')
             
-        plt.legend(['true function'])
+        plt.legend(['Learnt f'])
         plt.show()
 
     def plot_states_outputs_in_1D(self):
