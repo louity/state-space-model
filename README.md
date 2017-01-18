@@ -7,7 +7,7 @@ We work with the following model:
   - The outputs **y[.]** are vectors of dimention **q** and are **observed**.
   - The functions **f** and **g** are non linear functions.
   - The sequences **v[.]** and **w[.]** are sequence of independent identically distributed [multivariate Gaussian noises](https://en.wikipedia.org/wiki/Multivariate_normal_distribution).
-  
+
 that can be represented with the following [graphical model](https://en.wikipedia.org/wiki/Graphical_model) :
 ![model](https://github.com/louity/state-space-model/raw/master/rapport/images/graph.png)
 
@@ -15,7 +15,7 @@ The purpose is to do:
   - **inference** : compute the probabilty of the states **x[.]** given the outputs **y[.]**
   - **learning** : given the outputs **y[.]** learn the functions **f** and **g** with an [EM algorithm](https://en.wikipedia.org/wiki/Expectation%E2%80%93maximization_algorithm).
 
-For a good mathematical presentation of the state space model, have a look at the [report]()
+For a good mathematical presentation of the state space model, have a look at the [report](https://raw.githubusercontent.com/louity/state-space-model/master/rapport/report.pdf)
 
 ## Inference
 
