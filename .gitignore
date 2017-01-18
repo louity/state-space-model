@@ -5,7 +5,6 @@
 **/*.pyc
 rapport/*.log
 rapport/*.aux
-rapport/*.pdf
 *.bbl
 *.blg
 rapport/*.synctex.gz
