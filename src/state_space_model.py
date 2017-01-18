@@ -47,14 +47,23 @@ class StateSpaceModel:
         self.input_sequence = None
 
         if (self.f is None):
-            self.A = np.identity(self.state_dim)
-            self.b = np.zeros(self.state_dim)
-            if (self.input_dim > 0):
-                self.B = np.zeros((self.state_dim, self.input_dim))
+            self.initialize_f_linear_parametrization()
         if (self.g is None):
-            self.C = np.zeros((self.output_dim, self.state_dim))
-            self.d = np.zeros(self.output_dim)
+            self.initialize_g_linear_parametrization()
+        if (not linear_approximation_for_f) or (not linear_approximation_for_g):
+            self.initialize_rbf_parameters()
 
+    def initialize_f_linear_parametrization(self):
+        self.A = np.identity(self.state_dim)
+        self.b = np.zeros(self.state_dim)
+        if (self.input_dim > 0):
+            self.B = np.zeros((self.state_dim, self.input_dim))
+
+    def initialize_g_linear_parametrization(self):
+        self.C = np.zeros((self.output_dim, self.state_dim))
+        self.d = np.zeros(self.output_dim)
+        if (self.input_dim > 0):
+            self.D = np.zeros((self.output_dim, self.input_dim))
 
     def initialize_rbf_parameters(self, n_rbf=DEFAULT_N_RBF):
         if (self.output_sequence is None):
@@ -95,7 +104,7 @@ class StateSpaceModel:
             raise ValueError('u vector must have state dimension')
 
         if (self.f is not None):
-            return self.f(x,u) if (u is not None) else self.f(x)
+            return self.f(x, u) if (u is not None) else self.f(x)
         else:
             f = self.A.dot(x) + self.b
 
@@ -173,7 +182,7 @@ class StateSpaceModel:
                 value = self.g_rbf_coeffs[i]
                 dg += utils.rbf_derivative(value, center, inv(width), x)
 
-            return dg
+        return dg
 
     def extended_kalman_filter(self):
         """
@@ -647,49 +656,19 @@ class StateSpaceModel:
 
         return log_likelihood
 
-    def plot_states_in_1D(self):
+    def plot_states_in_1D(self, plot_estimated_values=True):
         if (self.state_dim != 1):
             raise Exception('states plot can be only in 1D')
+
         plt.clf()
         plt.figure(1)
         min = 0
         max = 1
 
-        if (self.state_sequence is not None):
-            states = self.state_sequence
-            T = len(states)
-            plt.scatter(states[0:T-1], states[1:])
-            min = np.min(states)
-            max = np.max(states)
-
-        def f(x):
-            return self.compute_f(np.array([x]))[0]
-
-        X = np.linspace(min, max, 100)
-        plt.plot(X, np.vectorize(f)(X),'r-')
-        plt.plot(X, X, 'r--')
-        if self.linear_approximation_for_f:
-            plt.title('true states evolution. f : x -> ' + str(self.A[0, 0]) + ' * x + ' + str(self.b[0]))
-        else:
-            plt.title('True states evolution')
-        plt.show()
-
-    def plot_estimmated_states_in_1D(self, use_smoothed_values=False):
-        '''
-        Il n'y a pas de difference avec plot_states_in_1D si ce n'est dans les legendes et title, car
-        plot_estimmated_states_in_1D s'appelle après que l'on est appris les coefficients.
-        '''
-        if (self.state_dim != 1):
-            raise Exception('state plot can be sonly in 1D')
-        plt.clf()
-        plt.figure(1)
-        min = 0
-        max = 1
-
-        if (use_smoothed_values):
-            states = self.smoothed_state_means
-        else:
+        if (plot_estimated_values):
             states = self.filtered_state_means[:, 1]
+        else:
+            states = self.state_sequence
 
         T = len(states)
         plt.scatter(states[0:T-1], states[1:])
@@ -699,17 +678,13 @@ class StateSpaceModel:
         def f(x):
             return self.compute_f(np.array([x]))[0]
 
-        X = np.linspace(min, max, 100)
-        plt.plot(X, np.vectorize(f)(X), 'r-')
+        X = np.linspace(min, max, 500)
+        plt.plot(X, np.vectorize(f)(X),'r-')
         plt.plot(X, X, 'r--')
-        #ce n'était bon que pour la partir lineaire
-        if self.linear_approximation_for_f:
-            plt.title('inferred states evolution. f : x -> ' + str(self.A[0, 0]) + ' * x + ' + str(self.b[0]))
-        else:
-            plt.title('Inferred states evolution')
-
-        plt.legend(['Learnt f'])
+        title = 'estimated states' if plot_estimated_values else 'true states'
+        plt.title(title)
         plt.show()
+
 
     def plot_states_outputs_in_1D(self):
         if (self.state_dim != 1 or self.output_dim != 1):
@@ -742,8 +717,6 @@ class StateSpaceModel:
         n = self.output_dim
         log_likelihood = 0
         R = self.R
-        C = self.C
-        CT = C.transpose()
 
         for t in range(0, T):
             y = outputs[t]
@@ -755,8 +728,8 @@ class StateSpaceModel:
                 mu_x = self.filtered_state_means[t, 1]
                 Sigma_x = self.filtered_state_covariance[t, 1]
 
-            if (not self.linear_approximation_for_g):
-                C = C + self.compute_dg_dx(mu_x)
+            C = self.compute_dg_dx(mu_x)
+            CT = C.transpose()
 
             mu_y = self.compute_g(mu_x)
             Sigma_y = C.dot(Sigma_x).dot(CT) + R
@@ -764,4 +737,3 @@ class StateSpaceModel:
             log_likelihood += -0.5 * n * log(2 * np.pi) - 0.5 * log(det(Sigma_y)) - 0.5 * (y - mu_y).dot(inv(Sigma_y)).dot(y - mu_y)
 
         return log_likelihood
-
