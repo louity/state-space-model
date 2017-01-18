@@ -18,177 +18,137 @@ class StateSpaceModel:
     permet de faire du filtering et du smoothing
     """
 
-    def __init__(self, is_f_linear=True, is_g_linear=True, state_dim=None, input_dim=None, output_dim=None, Sigma_0=None, A=None, B=None, b=None, Q=None, C=None, D=None, d=None, R=None, f_rbf_parameters=None, f_rbf_coeffs=None, g_rbf_parameters=None, g_rbf_coeffs=None, f_analytical=None):
+    def __init__(self, state_dim=None, input_dim=None, output_dim=None, f=None, g=None, df_dx=None, dg_dx=None, Q=None, R=None, Sigma_0=None, linear_approximation_for_f=True, linear_approximation_for_g=True):
         '''
-        Cette fonction donne les attributs a l'objet self et verifie leur coherence
+            Cette fonction donne les attributs a l'objet self et verifie leur coherence
         '''
-        self.is_f_linear = is_f_linear
-        self.is_g_linear = is_g_linear
+        if (state_dim is None) or (input_dim is None) or (output_dim is None):
+            raise ValueError('All dimensions must be given : state_dim, input_dim, output_dim')
 
-        if state_dim is None:
-            print 'No state space imension given, default set to 1'
-            self.state_dim = 1
-        else:
-            self.state_dim = state_dim
-        if input_dim is None:
-            print 'No input space dimension given, default set to 0'
-            self.input_dim = 0
-        else:
-            self.input_dim = input_dim
-        if output_dim is None:
-            print 'No output space dimension given, default set to 1'
-            self.output_dim = 1
-        else:
-            self.output_dim = output_dim
+        self.input_dim = input_dim
+        self.output_dim = output_dim
+        self.state_dim = state_dim
 
-        self.b = utils.check_vector(b, self.state_dim, 'vector b size must be equal to state_dim')
-        self.d = utils.check_vector(d, self.output_dim, 'vector d size must de equal to output_dim')
 
         self.Sigma_0 = utils.check_matrix(Sigma_0, (self.state_dim, self.state_dim), 'matrix Sigma_0 shape must be equal to self.state_dim')
-        self.A = utils.check_matrix(A, (self.state_dim, self.state_dim), 'matrix A shape must equal to state_dim x state_dim')
-        self.B = utils.check_matrix(B, (self.state_dim, self.input_dim), 'matrix B shape must equal to state_dim x input_dim') if (self.input_dim > 0) else None
         self.Q = utils.check_matrix(Q, (self.state_dim, self.state_dim), 'matrix Q shape must equal to state_dim x state_dim')
-        self.C = utils.check_matrix(C, (self.output_dim, self.state_dim), 'matrix C shape must equal to output_dim x state_dim')
-        self.D = utils.check_matrix(D, (self.output_dim, self.input_dim), 'matrix D shape must equal to output_dim x input_dim') if (self.input_dim > 0) else None
         self.R = utils.check_matrix(R, (self.output_dim, self.output_dim), 'matrix R shape must equal to self.output_dim')
 
-        self.f_rbf_parameters = f_rbf_parameters
-        self.g_rbf_parameters = g_rbf_parameters
-        self.f_rbf_coeffs = f_rbf_coeffs
-        self.g_rbf_coeffs = g_rbf_coeffs
-        
-        self.f_analytical = f_analytical
+        self.f = f
+        self.g = g
+        self.df_dx = df_dx
+        self.dg_dx = dg_dx
+
+        self.linear_approximation_for_f = linear_approximation_for_f
+        self.linear_approximation_for_g = linear_approximation_for_g
 
         self.output_sequence = None
         self.state_sequence = None
         self.input_sequence = None
 
-        if not self.is_f_linear and self.f_rbf_parameters is None:
-            print 'No rbf parameters provided for f, initialize them'
-            self.initialize_f_rbf_parameters()
-        if not self.is_f_linear and self.f_rbf_coeffs is None:
-            self.f_rbf_coeffs = np.zeros((self.f_rbf_parameters['n_rbf'], self.state_dim))
-        if not self.is_g_linear and self.g_rbf_parameters is None:
-            print 'No rbf parameters provided for g, initialize them '
-            self.initialize_g_rbf_parameters()
-        if not self.is_g_linear and self.g_rbf_coeffs is None:
-            self.g_rbf_coeffs = np.zeros((self.g_rbf_parameters['n_rbf'], self.output_dim))
+        if (self.f is None):
+            self.A = np.identity(self.state_dim)
+            self.b = np.zeros(self.state_dim)
+            if (self.input_dim > 0):
+                self.B = np.zeros((self.state_dim, self.input_dim))
+        if (self.g is None):
+            self.C = np.zeros((self.output_dim, self.state_dim))
+            self.d = np.zeros(self.output_dim)
 
-    def get_rbf_parameters_for_state(self):
-        '''
-        give default parameters to the RBF on the state space
-        '''
-        is_f_linear = self.is_f_linear
-        is_g_linear = self.is_g_linear
 
-        # make f and g linear
-        self.is_f_linear = True
-        self.is_g_linear = True
+    def initialize_rbf_parameters(self, n_rbf=DEFAULT_N_RBF):
+        if (self.output_sequence is None):
+            raise Exception('Output sequence is needed to initialize RBF parameters')
 
-        self.draw_sample(10 * DEFAULT_N_RBF)
-        self.kalman_smoothing()
+        self.f_rbf_coeffs = np.zeros((n_rbf, self.state_dim))
+        self.g_rbf_coeffs = np.zeros((n_rbf, self.output_dim))
 
-        self.is_f_linear = is_f_linear
-        self.is_g_linear = is_g_linear
+        self.extended_kalman_smoother()
 
-        # if state dim is one, place rbf uniformly
         if (self.state_dim == 1):
             x_min = np.min(self.smoothed_state_means)
             x_max = np.max(self.smoothed_state_means)
-            rbf_centers = np.zeros((DEFAULT_N_RBF, 1))
-            rbf_width = np.zeros((DEFAULT_N_RBF, 1, 1))
-            center_space = (x_max - x_min) / DEFAULT_N_RBF
+            rbf_centers = np.zeros((n_rbf, 1))
+            rbf_width = np.zeros((n_rbf, 1, 1))
+            center_space = (x_max - x_min) / n_rbf
 
-            for i in range(0, DEFAULT_N_RBF):
+            for i in range(0, n_rbf):
                 rbf_centers[i, 0] = x_min + (i + 0.5) * center_space
                 rbf_width[i, 0, 0] = center_space**2
 
-            return {
-                'n_rbf': DEFAULT_N_RBF,
+            self.rbf_parameters = {
+                'n_rbf': n_rbf,
                 'centers': rbf_centers,
                 'width': rbf_width
             }
         else:
-            return {
-                'n_rbf': DEFAULT_N_RBF,
-                'centers': random.sample(self.smoothed_state_means, DEFAULT_N_RBF),#TODO : replace random selection by k-means
-                'width': random.sample(self.smoothed_state_covariance, DEFAULT_N_RBF)
+            self.rbf_parameters = {
+                'n_rbf': n_rbf,
+                'centers': random.sample(self.smoothed_state_means, n_rbf),#TODO : replace random selection by k-means
+                'width': random.sample(self.smoothed_state_covariance, n_rbf)
             }
-
-    def initialize_f_rbf_parameters(self):
-        '''
-        Idem on ne devrait pas l'utiliser puisque l'on ne veut pas adapter les parametres de la RBF
-        '''
-        if self.g_rbf_parameters is not None:
-            self.f_rbf_parameters = self.g_rbf_parameters
-        else:
-            self.f_rbf_parameters = self.get_rbf_parameters_for_state()
-
-    def initialize_g_rbf_parameters(self):
-        '''
-        Idem on ne devrait pas l'utiliser puisque l'on ne veut pas adapter les parametres de la RBF
-        '''
-        if self.f_rbf_parameters is not None:
-            self.g_rbf_parameters = self.f_rbf_parameters
-        else:
-            self.g_rbf_parameters = self.get_rbf_parameters_for_state()
 
     def compute_f(self, x, u=None):
         if x.size != self.state_dim:
             raise ValueError('x vector must have state dimension')
         if (u is not None and u.size != self.input_dim):
             raise ValueError('u vector must have state dimension')
-            
-        if (self.f_analytical is not None and u is None):
-            return self.f_analytical(x)
 
-        f = self.A.dot(x) + self.b
+        if (self.f is not None):
+            return self.f(x,u) if (u is not None) else self.f(x)
+        else:
+            f = self.A.dot(x) + self.b
 
-        if (u is not None):
-             f += self.B.dot(u)
+            if (u is not None):
+                f += self.B.dot(u)
 
-        if not self.is_f_linear:
-            I = self.f_rbf_parameters['n_rbf']
-            for i in range(0, I):
-                center = self.f_rbf_parameters['centers'][i]
-                width = self.f_rbf_parameters['width'][i]
-                value = self.f_rbf_coeffs[i]
-                f += utils.rbf(value, center, inv(width), x)
+            if (not self.linear_approximation_for_f):
+                for i in range(0, self.rbf_parameters['n_rbf']):
+                    center = self.rbf_parameters['centers'][i]
+                    width = self.rbf_parameters['width'][i]
+                    value = self.f_rbf_coeffs[i]
+                    f += utils.rbf(value, center, inv(width), x)
 
-        return f
+            return f
 
     def compute_g(self, x, u=None):
         if x.size != self.state_dim:
             raise ValueError('x vector must have state dimension')
-        elif (u is not None and u.size != self.input_dim):
+        if (u is not None and u.size != self.input_dim):
             raise ValueError('u vector must have state dimension')
 
-        g = self.C.dot(x) + self.d
+        if (self.g is not None):
+            return self.g(x,u) if (u is not None) else self.g(x)
+        else:
+            g = self.C.dot(x) + self.d
 
-        if (u is not None):
-            g += self.D.dot(u)
+            if (u is not None):
+                g += self.D.dot(u)
 
-        if not self.is_g_linear:
-            J = self.g_rbf_parameters['n_rbf']
-            for j in range(0, J):
-                center = self.g_rbf_parameters['centers'][j]
-                width = self.g_rbf_parameters['width'][j]
-                value = self.g_rbf_coeffs[j]
-                g += utils.rbf(value, center, inv(width), x)
+            if (not self.linear_approximation_for_g):
+                for i in range(0, self.rbf_parameters['n_rbf']):
+                    center = self.rbf_parameters['centers'][i]
+                    width = self.rbf_parameters['width'][i]
+                    value = self.g_rbf_coeffs[i]
+                    g += utils.rbf(value, center, inv(width), x)
 
-        return g
+            return g
 
-    def compute_df_dx(self, x):  # derivative of f ne depend pas de (u_t)_1..T
+    def compute_df_dx(self, x):
         if x.size != self.state_dim:
             raise ValueError('x vector must have state dimension')
+
+        if (self.df_dx is not None):
+            return self.df_dx(x)
+
         p = self.state_dim
         df = np.zeros((p, p))
         df += self.A
 
-        if not self.is_f_linear:
-            for i in range(0, self.f_rbf_parameters['n_rbf']):
-                center = self.f_rbf_parameters['centers'][i]
-                width = self.f_rbf_parameters['width'][i]
+        if (not self.linear_approximation_for_f):
+            for i in range(0, self.rbf_parameters['n_rbf']):
+                center = self.rbf_parameters['centers'][i]
+                width = self.rbf_parameters['width'][i]
                 value = self.f_rbf_coeffs[i]
                 df += utils.rbf_derivative(value, center, inv(width), x)
 
@@ -197,88 +157,67 @@ class StateSpaceModel:
     def compute_dg_dx(self, x):   # derivative of g ne depend pas de (u_t)_1..T
         if x.size != self.state_dim:
             raise ValueError('x vector must have state dimension')
+
+        if (self.dg_dx is not None):
+            return self.dg_dx(x)
+
         p = self.state_dim
         n = self.output_dim
-
         dg = np.zeros((n, p))
         dg += self.C
 
-        if not self.is_g_linear:
-            for i in range(0, self.g_rbf_parameters['n_rbf']):
-                center = self.g_rbf_parameters['centers'][i]
-                width = self.g_rbf_parameters['width'][i]
+        if (not self.linear_approximation_for_g):
+            for i in range(0, self.rbf_parameters['n_rbf']):
+                center = self.rbf_parameters['centers'][i]
+                width = self.rbf_parameters['width'][i]
                 value = self.g_rbf_coeffs[i]
                 dg += utils.rbf_derivative(value, center, inv(width), x)
 
-        return dg
+            return dg
 
-    def kalman_filtering(self, is_extended=False, input_sequence=None, output_sequence=None):
+    def extended_kalman_filter(self):
         """
             etant donne une sequence [y_1, ..., y_t], calcule de façon dynamique
             les moyennes et covariances de probabilités gaussiennes
             p(x_k|y_1, ... , y_k) et p(x_k|y_1, ... , y_k-1) pour k=1...t
             stocke les resultats dans self.filtered_state_means et self.filtered_state_covariance
         """
-
-        if is_extended and (self.is_f_linear and self.is_g_linear):
-            raise ValueError('Can not do extended Kalman filter with linear state space model')
-
-        if output_sequence is None and self.output_sequence is None:
-            raise ValueError('Can not do filtering if output_sequence is None')
-        elif output_sequence is not None:
-            self.output_sequence = output_sequence
+        if self.output_sequence is None:
+            raise Exception('Output_sequence is needed for kalman filter')
 
         T = len(self.output_sequence)
 
-        if (self.input_dim > 0) and (input_sequence is None) and (self.input_sequence is None):
-            print 'WARNING: no input sequence, setting it to zero'
-            self.input_sequence = [np.zeros(self.input_dim) for _ in range(0, T)]
+        if (self.input_dim > 0) and (self.input_sequence is None):
+            raise Exception('Input sequence is needed for kalman filter since input dimension is >0')
 
         # state evolution equation
-        A = self.A
-        AT = np.transpose(A)
-        B = self.B
-        b = self.b
         Q = self.Q
-
-        # output equation
-        C = self.C
-        CT = np.transpose(C)
-        D = self.D
-        d = self.d
         R = self.R
 
         self.filtered_state_means = np.zeros((T, 2, self.state_dim))
         self.filtered_state_covariance = np.zeros((T, 2, self.state_dim, self.state_dim))
-        self.filtered_state_correlation = np.zeros((T-1, self.state_dim, self.state_dim)) # stock P_{t,t+1 | t} : correlation between states /!\ length = T-1
+        self.filtered_state_correlation = np.zeros((T-1, self.state_dim, self.state_dim))
+
         for t in range(0, T):
             y = self.output_sequence[t]
+
             if (self.input_dim > 0):
                 u_g = self.input_sequence[t]
-                d = self.d + D.dot(u_g)
-
                 if t > 0:
                     u_f = self.input_sequence[t-1]
-                    b = self.b + B.dot(u_f)
             else:
                 u_f = None
                 u_g = None
 
-            if is_extended: # calcul du points de linéarisation x_tilde et modification de A, C et b, d
-                if t == 0:
-                    x_tilde = np.zeros(self.state_dim)
-                else:
-                    x_tilde = self.filtered_state_means[t-1, 1]
-                if not self.is_f_linear:
-                    A = self.compute_df_dx(x_tilde)
-                    AT = np.transpose(A)
-                    b = self.compute_f(x_tilde, u_f) - A.dot(x_tilde)
-                if not self.is_g_linear:
-                    C = self.compute_dg_dx(x_tilde)
-                    CT = np.transpose(C)
-                    d = self.compute_g(x_tilde, u_g) - C.dot(x_tilde)
+            x_tilde = np.zeros(self.state_dim) if (t == 0) else self.filtered_state_means[t-1, 1]
+            A = self.compute_df_dx(x_tilde)
+            AT = np.transpose(A)
+            b = self.compute_f(x_tilde, u_f) - A.dot(x_tilde)
+            C = self.compute_dg_dx(x_tilde)
+            CT = np.transpose(C)
+            d = self.compute_g(x_tilde, u_g) - C.dot(x_tilde)
 
-            # calcul des moyennes et covariances
+
             if t == 0: # initialization
                 x_1_0 = np.zeros(self.state_dim)
                 P_1_0 = self.Sigma_0
@@ -298,28 +237,24 @@ class StateSpaceModel:
             self.filtered_state_covariance[t, 0] = P_1_0
             self.filtered_state_covariance[t, 1] = P_1_1
 
-
-
-    def kalman_smoothing(self, is_extended=False, output_sequence=None):
+    def extended_kalman_smoother(self):
         """
             etant donne une sequence [y_1, ..., y_T], calcule de façon dynamique
             les moyennes et covariances de probabilités gaussiennes
             p(x_t|y_1, ... , y_T) pour t=1...T
             stocke les resultats dans self.smoothed_state_means et self.smoothed_state_covariance
         """
-        self.kalman_filtering(is_extended=is_extended, output_sequence=output_sequence)
+        self.extended_kalman_filter()
 
         T = len(self.output_sequence)
 
         self.smoothed_state_means = np.zeros((T, self.state_dim))
         self.smoothed_state_covariance = np.zeros((T, self.state_dim, self.state_dim))
         self.smoothed_state_correlation = np.zeros((T-1, self.state_dim, self.state_dim)) # stock P_{t,t+1 | T}  /!\ length = T avec None en dernière position
-        AT = np.transpose(self.A)
 
         for t in range(T-1, -1, -1):
-            if is_extended:
-                x_dot = self.filtered_state_means[t, 1]  # On linéarise autour de la moyenne renvoyée par le Kalman Filter
-                AT = np.transpose(self.compute_df_dx(x_dot))
+            x_dot = self.filtered_state_means[t, 1]  # On linéarise autour de la moyenne renvoyée par le Kalman Filter
+            AT = np.transpose(self.compute_df_dx(x_dot))
 
             if t == T-1:  # initialisation en backward
                 x_t_T = self.filtered_state_means[t, 1]
@@ -344,13 +279,11 @@ class StateSpaceModel:
             self.smoothed_state_means[t] = x_t_T
             self.smoothed_state_covariance[t] = P_t_T
 
-
-
     def draw_sample(self, T=1, input_sequence=None):
         '''
-        genere une output_sequence et une state_sequence de tqille T avec les vrais
-        le for n'est clairement pas optimal
-        Comment fait-on si on veut un x_true et un x_learn: oblige de creer 2 objets?
+            genere une output_sequence et une state_sequence de tqille T avec les vrais
+            le for n'est clairement pas optimal
+            Comment fait-on si on veut un x_true et un x_learn: oblige de creer 2 objets?
         '''
         if (self.input_dim > 0 ) and (input_sequence is None) and (self.input_sequence is None or len(self.input_sequence) < T):
             print 'No input sequence given, setting inputs to zero'
@@ -378,11 +311,11 @@ class StateSpaceModel:
 
         self.output_sequence = outputs
         self.state_sequence = states
-        
-    
+
+
     def compute_f_optimal_parameters(self, use_smoothed_values=False):
         T = len(self.output_sequence)
-        I = self.f_rbf_parameters['n_rbf'] if (not self.is_f_linear) else 0
+        I = 0 if (self.linear_approximation_for_f) else self.rbf_parameters['n_rbf']
         p = self.state_dim
         q = self.input_dim
         n_params = I+p+q+1
@@ -444,8 +377,8 @@ class StateSpaceModel:
             # expectations involving RBF
             for i in range(0, I):
                 # simplify notatations
-                SInv = inv(self.f_rbf_parameters['width'][i])
-                c = self.f_rbf_parameters['centers'][i]
+                SInv = inv(self.rbf_parameters['width'][i])
+                c = self.rbf_parameters['centers'][i]
 
                 SigmaInv = PInv + SInv
                 Sigma = inv(SigmaInv)
@@ -464,8 +397,8 @@ class StateSpaceModel:
 
                 # expectations with mu^{i,j}_t and beta^{i,j}_t
                 for j in range(i, I):
-                    SjInv = inv(self.f_rbf_parameters['width'][j])
-                    cj = self.f_rbf_parameters['centers'][j]
+                    SjInv = inv(self.rbf_parameters['width'][j])
+                    cj = self.rbf_parameters['centers'][j]
 
                     SigmaInv = PInv + SInv + SjInv
                     Sigma = inv(SigmaInv)
@@ -512,7 +445,7 @@ class StateSpaceModel:
 
     def compute_g_optimal_parameters(self, use_smoothed_values=False):
         T = len(self.output_sequence)
-        J = self.g_rbf_parameters['n_rbf'] if (not self.is_g_linear) else 0
+        J = 0 if (self.linear_approximation_for_g) else self.rbf_parameters['n_rbf']
         p = self.state_dim
         q = self.input_dim
         n = self.output_dim
@@ -567,8 +500,8 @@ class StateSpaceModel:
             # expectations involving RBF
             for j in range(0, J):
                 # simplify notatations
-                SInv = inv(self.g_rbf_parameters['width'][j])
-                c = self.g_rbf_parameters['centers'][j]
+                SInv = inv(self.rbf_parameters['width'][j])
+                c = self.rbf_parameters['centers'][j]
 
                 SigmaInv = PInv + SInv
                 Sigma = inv(SigmaInv)
@@ -589,8 +522,8 @@ class StateSpaceModel:
 
                 # expectations with mu^{i,j}_t and beta^{i,j}_t
                 for k in range(j, J):
-                    SkInv = inv(self.g_rbf_parameters['width'][k])
-                    ck = self.g_rbf_parameters['centers'][k]
+                    SkInv = inv(self.rbf_parameters['width'][k])
+                    ck = self.rbf_parameters['centers'][k]
 
                     SigmaInv = PInv + SInv + SkInv
                     Sigma = inv(SigmaInv)
@@ -699,28 +632,14 @@ class StateSpaceModel:
         return likelihood_evolution
 
 
-    def learn_f_and_g_with_EM_algorithm(self, use_smoothed_values=None):
+    def learn_f_and_g_with_EM_algorithm(self, use_smoothed_values=False):
         n_EM_iterations = 20
-
-        if (self.is_f_linear and self.is_g_linear):
-            if (use_smoothed_values is None):
-                use_smoothed_values = False
-            is_extended=False
-        elif (not self.is_f_linear and self.is_g_linear):
-            if (use_smoothed_values is None):
-                    use_smoothed_values = False
-            is_extended=True
-            #self.initialize_g_with_factor_analysis()
-        elif (self.is_f_linear and not self.is_g_linear):
-            raise Exception('EM not implemented for f linear and g non-linear')
-        elif (not self.is_f_linear and not self.is_g_linear):
-            raise Exception('EM not implemented for f non-linear and g non-linear')
 
         log_likelihood = np.zeros(n_EM_iterations)
 
         for EM_iteration in range(0, n_EM_iterations):
             # E-Step
-            self.kalman_smoothing(is_extended=False)
+            self.extended_kalman_smoother()
             #M-Step
             self.compute_f_optimal_parameters(use_smoothed_values=use_smoothed_values)
             #self.compute_g_optimal_parameters(use_smoothed_values=use_smoothed_values)
@@ -729,11 +648,8 @@ class StateSpaceModel:
         return log_likelihood
 
     def plot_states_in_1D(self):
-        '''
-        S'appelle avant d'avoir appris les coefficients 
-        '''
         if (self.state_dim != 1):
-            raise Exception('state plot can be sonly in 1D')
+            raise Exception('states plot can be only in 1D')
         plt.clf()
         plt.figure(1)
         min = 0
@@ -752,7 +668,7 @@ class StateSpaceModel:
         X = np.linspace(min, max, 100)
         plt.plot(X, np.vectorize(f)(X),'r-')
         plt.plot(X, X, 'r--')
-        if self.is_f_linear:
+        if self.linear_approximation_for_f:
             plt.title('true states evolution. f : x -> ' + str(self.A[0, 0]) + ' * x + ' + str(self.b[0]))
         else:
             plt.title('True states evolution')
@@ -787,11 +703,11 @@ class StateSpaceModel:
         plt.plot(X, np.vectorize(f)(X), 'r-')
         plt.plot(X, X, 'r--')
         #ce n'était bon que pour la partir lineaire
-        if self.is_f_linear:
+        if self.linear_approximation_for_f:
             plt.title('inferred states evolution. f : x -> ' + str(self.A[0, 0]) + ' * x + ' + str(self.b[0]))
         else:
             plt.title('Inferred states evolution')
-            
+
         plt.legend(['Learnt f'])
         plt.show()
 
@@ -839,7 +755,7 @@ class StateSpaceModel:
                 mu_x = self.filtered_state_means[t, 1]
                 Sigma_x = self.filtered_state_covariance[t, 1]
 
-            if (not self.is_g_linear):
+            if (not self.linear_approximation_for_g):
                 C = C + self.compute_dg_dx(mu_x)
 
             mu_y = self.compute_g(mu_x)

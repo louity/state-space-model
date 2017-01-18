@@ -13,128 +13,106 @@ class TestStateSpaceModelConstructorAndSample(unittest.TestCase):
         Tests constructor and draw_sample method of class StateSpaceModel
     """
 
-    def test_constructor(self):
-        for i, is_f_linear in enumerate([True, False]):
-            ssm = StateSpaceModel(is_f_linear=is_f_linear)
+    def test_constructor_and_sample_method(self):
+        input_dim = 0
+        for (state_dim, output_dim) in  zip([1, 4, 2], [1, 2, 4]):
+            state_dim = 1
+            output_dim = 1
 
-            for j, attr in enumerate(['is_f_linear', 'state_dim', 'input_dim', 'output_dim', 'Sigma_0', 'A', 'Q', 'C', 'R']):
-                self.assertIsNotNone(getattr(ssm, attr), 'attribute ' + attr + ' should not be None')
+            A = random((state_dim, state_dim))
+            C = random((output_dim, state_dim))
+            Q = np.ones((state_dim, state_dim))
+            R = np.ones((output_dim, output_dim))
 
-    def test_sample_method(self):
-        for i, is_f_linear in enumerate([True, False]):
-            for j, (state_dim, output_dim, input_dim) in enumerate(zip([1, 4, 3], [1, 3, 4], [0, 0, 0])):
-                for k, n_sample in enumerate([1, 10]):
-                    ssm = StateSpaceModel(is_f_linear=is_f_linear, state_dim=state_dim, output_dim=output_dim, input_dim=input_dim)
-                    ssm.draw_sample(T=n_sample)
-                    self.assertEqual(len(getattr(ssm, 'state_sequence')), n_sample)
+            def f(x):
+                return A.dot(x)
+            def g(x):
+                return C.dot(x)
 
-                    for i in range(0, n_sample):
-                        x = ssm.state_sequence[i]
-                        y = ssm.output_sequence[i]
-                        self.assertEqual(x.size, ssm.state_dim)
-                        self.assertEqual(y.size, ssm.output_dim)
+            ssm = StateSpaceModel(
+                input_dim=input_dim,
+                output_dim=output_dim,
+                state_dim=state_dim,
+                Q=Q,
+                R=R,
+                f=f,
+                g=g
+            )
+
+            n_sample = 50
+            ssm.draw_sample(T=n_sample)
+
+            for i in range(0, n_sample):
+                x = ssm.state_sequence[i]
+                y = ssm.output_sequence[i]
+                self.assertEqual(x.size, ssm.state_dim)
+                self.assertEqual(y.size, ssm.output_dim)
 
 class TestStateSpaceModelInferenceMethods(unittest.TestCase):
-    """
-        Tests inference methods (kalman filter and kalman smoother) of class StateSpaceModel
-    """
-    def test_linear_kalman_methods(self):
-        for i, (state_dim, output_dim, input_dim) in enumerate(zip([1, 4, 3], [1, 3, 4], [0, 0, 0])):
-            # tester différentes tailles
-            for j, T in enumerate([1, 10]):
-                default_message = 'Parameters : T = ' + str(T) + '. state_dim = ' + str(state_dim) + '.  output_dim = ' + str(output_dim) + '. input_dim = ' + str(input_dim)
-                ssm = StateSpaceModel(is_f_linear=True, is_g_linear=True, state_dim=state_dim, output_dim=output_dim, input_dim=input_dim)
-                ssm.draw_sample(T=T)
-                ssm.kalman_smoothing(is_extended=False)
-                self.assertEqual(len(getattr(ssm, 'filtered_state_means')), T)
-                self.assertEqual(len(getattr(ssm, 'filtered_state_covariance')), T)
-                self.assertEqual(len(getattr(ssm, 'smoothed_state_means')), T)
-                self.assertEqual(len(getattr(ssm, 'smoothed_state_covariance')), T)
-
-                # verifier que les moyennes et covariances estimmées ont les bonnes dimensions
-                for i in range(0,T):
-                    xFilter0 = ssm.filtered_state_means[i][0]
-                    xFilter1 = ssm.filtered_state_means[i][1]
-                    PFilter0 = ssm.filtered_state_covariance[i][0]
-                    PFilter1 = ssm.filtered_state_covariance[i][1]
-
-                    xSmooth = ssm.smoothed_state_means[i]
-                    PSmooth = ssm.smoothed_state_covariance[T - 1 - i]
-
-                    self.assertEqual(xFilter0.size, ssm.state_dim, 'mean vector must have state_dim dimension')
-                    self.assertEqual(xFilter1.size, ssm.state_dim, 'mean vector must have state_dim dimension')
-                    self.assertEqual(PFilter0.shape, (ssm.state_dim, ssm.state_dim), 'cov matrix must have state_dim dimension')
-                    self.assertEqual(PFilter1.shape, (ssm.state_dim, ssm.state_dim), 'cov matrix must have state_dim dimension')
-                    # check that matrices are definite positive
-                    self.assertTrue(utils.is_pos_def(PFilter0), 'filtered covariance matrix must be positive definite')
-                    self.assertTrue(utils.is_pos_def(PFilter1), 'filtered covariance matrix must be positive definite')
-
-                    self.assertEqual(xSmooth.size, ssm.state_dim, 'mean vector must have state_dim dimension')
-                    self.assertEqual(PSmooth.shape, (ssm.state_dim, ssm.state_dim), 'cov matrix must have state_dim dimension')
-                    self.assertTrue(utils.is_pos_def(PSmooth), default_message + '. Smoothed covariance P_{T-' + str(i) +'} matrix must be positive definite')
-
-    def test_extended_kalman_filter(self):
-        for i, (is_f_linear, is_g_linear) in enumerate(zip([False, True, False], [True, False, False])):
-            # tester différentes dimensions pour les espaces
-            for j, (state_dim, output_dim, input_dim) in enumerate(zip([1, 4, 3], [1, 3, 4], [0, 0, 0])):
-                # tester différentes tailles
-                for k, T in enumerate([1, 10]):
-                    ssm = StateSpaceModel(is_f_linear=is_f_linear, is_g_linear=is_g_linear, state_dim=state_dim, output_dim=output_dim, input_dim=input_dim)
-                    ssm.draw_sample(T=T)
-                    ssm.kalman_filtering(is_extended=True)
-                    self.assertEqual(len(getattr(ssm, 'filtered_state_means')), T)
-                    self.assertEqual(len(getattr(ssm, 'filtered_state_covariance')), T)
-
-                    # verifier que les moyennes et covariances estimmées ont les bonnes dimensions
-                    for i in range(0,T):
-                        xFilter0 = ssm.filtered_state_means[i][0]
-                        xFilter1 = ssm.filtered_state_means[i][1]
-                        PFilter0 = ssm.filtered_state_covariance[i][0]
-                        PFilter1 = ssm.filtered_state_covariance[i][1]
-
-                        self.assertEqual(xFilter0.size, ssm.state_dim, 'mean vector must have state_dim dimension')
-                        self.assertEqual(xFilter1.size, ssm.state_dim, 'mean vector must have state_dim dimension')
-                        self.assertEqual(PFilter0.shape, (ssm.state_dim, ssm.state_dim), 'cov matrix must have state_dim dimension')
-                        self.assertEqual(PFilter1.shape, (ssm.state_dim, ssm.state_dim), 'cov matrix must have state_dim dimension')
-                        # check that matrices are definite positive
-                        self.assertTrue(utils.is_pos_def(PFilter0), 'filtered covariance matrix must be positive definite')
-                        self.assertTrue(utils.is_pos_def(PFilter1), 'filtered covariance matrix must be positive definite')
-
     def test_extended_kalman_smoother(self):
-        for i, (is_f_linear, is_g_linear) in enumerate(zip([False, True, False], [True, False, False])):
-            # tester différentes dimensions pour les espaces
-            for j, (state_dim, output_dim, input_dim) in enumerate(zip([1, 4, 3], [1, 3, 4], [0, 0, 0])):
-                # tester différentes tailles
-                for k, T in enumerate([1, 10]):
-                    ssm = StateSpaceModel(is_f_linear=is_f_linear, is_g_linear=is_g_linear, state_dim=state_dim, output_dim=output_dim, input_dim=input_dim)
-                    ssm.draw_sample(T=T)
-                    ssm.kalman_smoothing(is_extended=True)
-                    self.assertEqual(len(getattr(ssm, 'filtered_state_means')), T)
-                    self.assertEqual(len(getattr(ssm, 'filtered_state_covariance')), T)
-                    self.assertEqual(len(getattr(ssm, 'smoothed_state_means')), T)
-                    self.assertEqual(len(getattr(ssm, 'smoothed_state_covariance')), T)
+        input_dim = 0
+        for (state_dim, output_dim) in  zip([1, 4, 2], [1, 2, 4]):
+            state_dim = 1
+            output_dim = 1
 
-                    # verifier que les moyennes et covariances estimmées ont les bonnes dimensions
-                    for i in range(0, T):
-                        xFilter0 = ssm.filtered_state_means[i][0]
-                        xFilter1 = ssm.filtered_state_means[i][1]
-                        PFilter0 = ssm.filtered_state_covariance[i][0]
-                        PFilter1 = ssm.filtered_state_covariance[i][1]
+            A = random((state_dim, state_dim))
+            C = random((output_dim, state_dim))
+            Q = np.ones((state_dim, state_dim))
+            R = np.ones((output_dim, output_dim))
 
-                        xSmooth = ssm.smoothed_state_means[i]
-                        PSmooth = ssm.smoothed_state_covariance[T - 1 - i]
+            def f(x):
+                return A.dot(x)
+            def g(x):
+                return C.dot(x)
+            def df_dx(x):
+                return A
+            def dg_dx(x):
+                return C
 
-                        self.assertEqual(xFilter0.size, ssm.state_dim, 'mean vector must have state_dim dimension')
-                        self.assertEqual(xFilter1.size, ssm.state_dim, 'mean vector must have state_dim dimension')
-                        self.assertEqual(PFilter0.shape, (ssm.state_dim, ssm.state_dim), 'cov matrix must have state_dim dimension')
-                        self.assertEqual(PFilter1.shape, (ssm.state_dim, ssm.state_dim), 'cov matrix must have state_dim dimension')
-                        # check that matrices are definite positive
-                        self.assertTrue(utils.is_pos_def(PFilter0), 'filtered covariance matrix must be positive definite')
-                        self.assertTrue(utils.is_pos_def(PFilter1), 'filtered covariance matrix must be positive definite')
+            ssm = StateSpaceModel(
+                input_dim=input_dim,
+                output_dim=output_dim,
+                state_dim=state_dim,
+                Q=Q,
+                R=R,
+                f=f,
+                g=g,
+                df_dx=df_dx,
+                dg_dx=dg_dx
+            )
 
-                        self.assertEqual(xSmooth.size, ssm.state_dim, 'mean vector must have state_dim dimension')
-                        self.assertEqual(PSmooth.shape, (ssm.state_dim, ssm.state_dim), 'cov matrix must have state_dim dimension')
-                        self.assertTrue(utils.is_pos_def(PSmooth), 'is_f_linear' + str(is_f_linear) + '.  is_g_linear' + str(is_g_linear) + '.  state_dim' + str(state_dim) + '.  output_dim' + str(output_dim) + '. Smoothed covariance P_{T-' + str(i) +'} matrix must be positive definite')
+            T = 50
+            ssm.draw_sample(T=T)
+
+            ssm.extended_kalman_smoother()
+
+            self.assertEqual(len(getattr(ssm, 'filtered_state_means')), T)
+            self.assertEqual(len(getattr(ssm, 'filtered_state_covariance')), T)
+            self.assertEqual(len(getattr(ssm, 'smoothed_state_means')), T)
+            self.assertEqual(len(getattr(ssm, 'smoothed_state_covariance')), T)
+
+            # verifier que les moyennes et covariances estimmées ont les bonnes dimensions
+            for i in range(0,T):
+                xFilter0 = ssm.filtered_state_means[i][0]
+                xFilter1 = ssm.filtered_state_means[i][1]
+                PFilter0 = ssm.filtered_state_covariance[i][0]
+                PFilter1 = ssm.filtered_state_covariance[i][1]
+
+                xSmooth = ssm.smoothed_state_means[i]
+                PSmooth = ssm.smoothed_state_covariance[T - 1 - i]
+
+                self.assertEqual(xFilter0.size, ssm.state_dim, 'mean vector must have state_dim dimension')
+                self.assertEqual(xFilter1.size, ssm.state_dim, 'mean vector must have state_dim dimension')
+                self.assertEqual(PFilter0.shape, (ssm.state_dim, ssm.state_dim), 'cov matrix must have state_dim dimension')
+                self.assertEqual(PFilter1.shape, (ssm.state_dim, ssm.state_dim), 'cov matrix must have state_dim dimension')
+                # check that matrices are definite positive
+                self.assertTrue(utils.is_pos_def(PFilter0), 'filtered covariance matrix must be positive definite')
+                self.assertTrue(utils.is_pos_def(PFilter1), 'filtered covariance matrix must be positive definite')
+
+                self.assertEqual(xSmooth.size, ssm.state_dim, 'mean vector must have state_dim dimension')
+                self.assertEqual(PSmooth.shape, (ssm.state_dim, ssm.state_dim), 'cov matrix must have state_dim dimension')
+                self.assertTrue(utils.is_pos_def(PSmooth), 'Smoothed covariance P_{T-' + str(i) +'} matrix must be positive definite')
+
 
 class TestStateSpaceModelLearningMethods(unittest.TestCase):
     """
@@ -142,17 +120,18 @@ class TestStateSpaceModelLearningMethods(unittest.TestCase):
     """
 
     def test_parameter_learning_in_linear_case(self):
-         is_f_linear = True
-         is_g_linear = True
-         for j, (state_dim, output_dim) in enumerate(zip([1], [1])):
-             # tester différentes tailles
-             for k, n_sample in enumerate([100]):
-                 ssm = StateSpaceModel(is_f_linear=is_f_linear, is_g_linear=is_g_linear, state_dim=state_dim, output_dim=output_dim)
-                 ssm.draw_sample(T=n_sample)
-                 is_extended = False
-                 ssm.kalman_smoothing(is_extended=is_extended)
-                 ssm.compute_f_optimal_parameters()
-                 ssm.compute_g_optimal_parameters()
+        input_dim = 0
+        for (state_dim, output_dim) in zip([1], [1]):
+            n_sample = 100
+            ssm = StateSpaceModel(
+                state_dim=state_dim,
+                output_dim=output_dim,
+                input_dim=input_dim
+            )
+            ssm.draw_sample(T=n_sample)
+            ssm.extended_kalman_smoother()
+            ssm.compute_f_optimal_parameters()
+            ssm.compute_g_optimal_parameters()
 
     def test_EM_algorithm_in_linear_case(self):
          n_sample = 100
@@ -314,11 +293,11 @@ class TestStateSpaceModelLearningMethods(unittest.TestCase):
          plt.legend(['true states', 'estimmated states'])
          plt.show()
 
-#test_suite_1 = unittest.TestLoader().loadTestsFromTestCase(TestStateSpaceModelConstructorAndSample)
-#unittest.TextTestRunner(verbosity=2).run(test_suite_1)
+test_suite_1 = unittest.TestLoader().loadTestsFromTestCase(TestStateSpaceModelConstructorAndSample)
+unittest.TextTestRunner(verbosity=2).run(test_suite_1)
 
-#test_suite_2 = unittest.TestLoader().loadTestsFromTestCase(TestStateSpaceModelInferenceMethods)
-#unittest.TextTestRunner(verbosity=2).run(test_suite_2)
+test_suite_2 = unittest.TestLoader().loadTestsFromTestCase(TestStateSpaceModelInferenceMethods)
+unittest.TextTestRunner(verbosity=2).run(test_suite_2)
 
-test_suite_3 = unittest.TestLoader().loadTestsFromTestCase(TestStateSpaceModelLearningMethods)
-unittest.TextTestRunner(verbosity=2).run(test_suite_3)
+#test_suite_3 = unittest.TestLoader().loadTestsFromTestCase(TestStateSpaceModelLearningMethods)
+#unittest.TextTestRunner(verbosity=2).run(test_suite_3)
